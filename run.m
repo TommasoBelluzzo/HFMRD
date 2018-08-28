@@ -14,9 +14,9 @@ paths_base = genpath(path);
 addpath(paths_base);
 
 data = parse_dataset(fullfile(path,'\Datasets\Example.xlsx'));
-
-%[ana,anad] = analyse_data(data);
 td = execute_tests(data,false);
+
+plot_data(data,true);
 plot_results(td);
 
 rmpath(paths_base);
