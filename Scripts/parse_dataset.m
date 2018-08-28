@@ -132,7 +132,7 @@ function data = parse_dataset_internal(file)
         if (any(ismissing(grps_vals)) || any(grps_vals < 1))
             error('The ''Groups'' table contains invalid or missing values.');
         end
-        
+
         grps_max = max(grps_vals);
         grps_seq = 1:grps_max;
         grps_cnt = zeros(grps_max,1);
@@ -146,6 +146,10 @@ function data = parse_dataset_internal(file)
         if (any(grps_mis))
             grps_mis = sprintfc(' %d',grps_seq(grps_mis));
             error('The following groups are not defined in the ''Groups'' table:%s.',strcat(grps_mis{:}));
+        end
+        
+        if (numel(unique(grps_vals)) > 10)
+            error('A maximum of 10 groups can be defined the ''Groups'' table.');
         end
         
         if (any(grps_cnt < 3))
