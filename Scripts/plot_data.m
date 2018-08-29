@@ -278,8 +278,7 @@ function plot_style_factors(date,sf)
         plot(date,sf{:,i},'Color','b');
         set(sub,'XLim',[date(1) date(end)]);
         datetick('x','yyyy','KeepLimits');
-        xlabel('Time');
-        ylabel(sf.Properties.VariableNames{i});
+        title(sub,sf.Properties.VariableNames{i});
     end
 
     figure_title('Style Factors');
