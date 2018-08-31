@@ -1,4 +1,4 @@
-# Hedge Funds Misreported Returns Detector
+# Hedge Funds Misreported Returns Detector (HFMRD)
 
 This script represents a full-featured framework for assessing Benford's Law conformity. It be used in order to perform all the tests proposed by Nigrini et al. (2012):
 
