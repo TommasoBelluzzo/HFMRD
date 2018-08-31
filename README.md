@@ -1,4 +1,4 @@
-# Misreported Returns
+# Misreported Returns Detector
 
 This script represents a full-featured framework for assessing Benford's Law conformity. It be used in order to perform all the tests proposed by Nigrini et al. (2012):
 
