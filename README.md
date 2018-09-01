@@ -51,7 +51,7 @@ The benchmark is represented by the market proxy defined in Fama & French, 1993:
 		
 #### Style Factors (18):
 * **MRKEXC:** the excess return on the market, calculated as benchmark minus risk-free rate.
-* **Fama & French Style Factors (8)** (taken from the [French Data Library](http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html))
+* **Fama & French Style Factors from the [French Data Library](http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html) (8)**
   * American International Group Inc. (AIG)
   * The Allstate Corp. (ALL)
   * Berkshire Hathaway Inc. (BRK)
