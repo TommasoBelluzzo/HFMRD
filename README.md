@@ -80,7 +80,7 @@ For what concerns the financial time series:
 
 ## Screenshots
 
-![Interactive Test Results](https://i.imgur.com/U542D7v.png)
+![Interactive Test Results](https://i.imgur.com/NOwYUWq.png)
 
 ![Network Measures](https://i.imgur.com/NuSHgBO.png)
 
