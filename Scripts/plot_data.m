@@ -168,7 +168,9 @@ function plot_funds_overview(data)
         for i = 1:grps_len;grps_leg(i)=area(0,NaN,'FaceColor',clrs(i+1,:),'ShowBaseLine','off');end
     hold off;
     set(sub_1,'XTickLabel',[{'Benchmark'} data.FrmsNam]);
-    title(sub_1,'Boxes');
+    t1 = title(sub_1,'Boxes');
+    t1_pos = get(t1,'Position');
+    set(t1,'Position',[0.4783 t1_pos(2) t1_pos(3)]);
     
     sub_2 = subplot(13,9,[73 112]);
     scatter(cdn,cup,36,[clrs(1,:); clrs(grps+1,:)],'filled');

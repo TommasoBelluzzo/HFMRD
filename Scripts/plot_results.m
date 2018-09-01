@@ -71,7 +71,7 @@ function plot_results_internal(td)
     set(a,'YLim',[0 7],'YTick',0.5:1:7,'YTickLabel',{'Data Quality' 'Digits Conformity' 'Discontinuity At Zero' 'December Spike' 'Bias Ratio' 'Serial Correlation' 'Low Correlation'});
 
     for i = 1:n
-        text(i,-0.2, heads{i},'Clipping','on','FontSize',12,'HorizontalAlignment','center');
+        text(i,-0.2, heads{i},'FontSize',12,'HorizontalAlignment','center');
     end
     
     iptPointerManager(fig,'enable');
@@ -225,7 +225,7 @@ function plot_test_data_quality(td)
         pai_clr = [0.298 0.800 0.000];
     end
     
-    str_txt = sprintf('Return Strings\nCount: %d | Critical Value: %d',data.StrVal,data.StrTest);
+    str_txt = sprintf('Return Streaks\nCount: %d | Critical Value: %d',data.StrVal,data.StrTest);
     
     if (data.StrFail)
         str_clr = [0.800 0.000 0.000];
@@ -294,7 +294,7 @@ function plot_test_data_quality(td)
         line([data.StrTest data.StrTest],[0 y_lim(2)],'Color',[0.800 0.450 0.000],'LineWidth',1.5);
         line([data.StrVal data.StrVal],[0 y_lim(2)],'Color',str_clr,'LineWidth',1.5);
     hold off;
-    xlabel('Simulated Return Strings');
+    xlabel('Simulated Return Streaks');
     ylabel('Counts');
     title(sub_4,str_txt,'Color',str_clr);
     

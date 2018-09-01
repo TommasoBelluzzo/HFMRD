@@ -5,7 +5,7 @@
 % sims = An integer representing the number of Monte Carlo simulations to perform (optional, default=10000).
 % nsf  = An integer [1,3] representing the maximum number of style factors that can be simultaneously used in regression models (optional, default=3).
 % swi  = A boolean indicating whether to use a switch of style factors for the calculation of the maximum R2 in the low correlation test (optional, default=false).
-% dec  = An integer [0,6] representing the number of decimal places to consider when performing digit tests (optional, default=4).
+% dec  = An integer [2,6] representing the number of decimal places to consider when performing digit tests (optional, default=4).
 %        No rounding is performed, the exceeding decimals are truncated as if they were not present.
 %
 % [OUTPUT]
@@ -25,7 +25,7 @@ function td = execute_tests(varargin)
         p.addOptional('sims',10000,@(x)validateattributes(x,{'numeric'},{'scalar','real','finite','integer','>=',1000}));
         p.addOptional('nsf',3,@(x)validateattributes(x,{'numeric'},{'scalar','real','finite','integer','>=',1,'<=',6}));
         p.addOptional('swi',false,@(x)validateattributes(x,{'logical'},{'scalar'}));
-        p.addOptional('dec',4,@(x)validateattributes(x,{'numeric'},{'scalar','real','finite','integer','>=',0,'<=',6}));
+        p.addOptional('dec',4,@(x)validateattributes(x,{'numeric'},{'scalar','real','finite','integer','>=',2,'<=',6}));
     end
     
     p.parse(varargin{:});
