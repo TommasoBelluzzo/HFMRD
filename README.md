@@ -30,10 +30,10 @@ The minimum Matlab version required is `R2014a`. In addition, the following prod
 * Mapping Toolbox
 * Statistics and Machine Learning Toolbox
 
-## Dataset & Usage 
+## Usage
 
-The framework doesn't require any specific dataset structure. Numeric data can be extracted from any source of produced following any methodology, but a minimum amount of 1000 elements (with at least 50 unique observations) is required in order to perform coherent analyses.
+1. Create a properly structured database (see the paragraph below).
+1. Edit the `run.m` script following your needs.
+1. Execute the `run.m` script.
 
-The `run.m` script provides an example of how this framework can be used, but all the functions located in the `Scripts` folder can be executed in standalone computation processes. It is recommended to validate and pre-process the dataset using the `benford_data` function. The `benford_analyse` functions can be used in order to perform a full automatic analysis of the dataset and plot the results. The `benford_random` function is an additional tool that produces random numbers whose digits follow the Benford's Law distribution.
-
-## Screenshots
+## Dataset
