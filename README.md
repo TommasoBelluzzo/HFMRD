@@ -80,7 +80,7 @@ For what concerns the financial time series:
 
 ## Screenshots
 
-![Probabilistic Measures](https://i.imgur.com/1Q1SQd2.png)
+![Interactive Test Results](https://i.imgur.com/U542D7v.png)
 
 ![Network Measures](https://i.imgur.com/NuSHgBO.png)
 
