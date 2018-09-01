@@ -38,6 +38,8 @@ The minimum Matlab version required is `R2014a`. In addition, the following prod
 1. Edit the `run.m` script following your needs.
 1. Execute the `run.m` script.
 
+The `Test Results` plot created by the `plot_results` function is interactive and based on a singleton pattern. Detailed plots concerning a specific test for a specific hedge fund can be displayed by clicking on the corresponding table cell.
+
 ## Dataset
 
 Every dataset must be structured like the default one included in any release of the framework (`Datasets/Example.xlsx`). The latter, based on the US financial sector, defines the following entities:
