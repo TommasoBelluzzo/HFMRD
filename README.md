@@ -20,6 +20,8 @@ This script represents a full-featured framework for detecting misreported retur
   * Number of Unique Returns
   * Number of Pairs of Identical Returns
   * Maximum Length of Adjacent Identical Returns
+  
+They are all based on the normality assumption of returns.
 
 ## Requirements
 
