@@ -40,21 +40,18 @@ The minimum Matlab version required is `R2014a`. In addition, the following prod
 
 Every dataset must be structured like the default one included in any release of the framework (`Datasets/Example.xlsx`). The latter, based on the US financial sector, defines the following entities:
 
-#### Benchmark
+#### Benchmark (BM) & Risk-Free Rate (RF)
 
-The market proxy defined by Fama & French (1993): the value-weighted returns of all the US CRSP firms listed on the AMEX, NASDAQ or NYSE that have a CRSP share code of 10 or 11 at the beginning of month t, good shares and price data at the beginning of t, and good return data for t.
-
-#### Risk-free Rate
-
-The 1M treasury bill rate.
+The benchmark is represented by the market proxy defined in Fama & French, 1993: the value-weighted returns of all the US CRSP firms listed on the AMEX, NASDAQ or NYSE that have a CRSP share code of 10 or 11 at the beginning of month t, good shares and price data at the beginning of t, and good return data for t. The 1M treasury bill rate is taken as the risk-free rate.
 
 #### Hedge Funds (3):
 * The Growth Fund of America - Class A (AGTHX)
 * The Gateway Fund - Class A (GATEX)
 * The Fairfield Sentry Fund of  Bernard Madoff (SENTRY)
 		
-#### Financial Institutions (20):
-* **From the [Fama & French Data Library!](http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html) (5)**
+#### Style Factors (18):
+* **MRKEXC:** the excess return on the market, calculated as benchmark minus risk-free rate.
+* **Fama & French Style Factors (8)** (taken from the [French Data Library](http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html))
   * American International Group Inc. (AIG)
   * The Allstate Corp. (ALL)
   * Berkshire Hathaway Inc. (BRK)
@@ -92,7 +89,7 @@ The 1M treasury bill rate.
 
 
 #### State Variables (6):
-* **RESI:** the DJ US Select RESI as a proxy of real estate returns.
+
 * **VIX:** the implied volatility index.
 * **TBN3M:** the 3M treasury bill rate.
 * **CRESPR:** the change in the credit spread (the BAA corporate bond rate minus the 10Y treasury bill rate).
