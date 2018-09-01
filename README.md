@@ -69,17 +69,12 @@ The benchmark is represented by the market proxy defined in Fama & French, 1993:
   * **TBR10Y:** the 10Y treasury bond rate.
   * **CRESPR:** the change in the credit spread (the BAA corporate bond rate minus the 10Y treasury bond rate).
 
-  
-
-
 For what concerns the financial time series:
-* they must contain enough observations to run consistent calculations (a minimum of 252 observations for at least 5 firms is recommended);
-* they must have been previously validated and preprocessed by discarding illiquid series with too many zeroes (unless necessary), detecting and removing outliers, removing rows with NaNs or filling the gaps with interpolation approach;
-* returns must expressed on a logarithmic scale, in accordance with all the systemic risk indicators;
-* market capitalizations must contain a supplementar observation at the beginning because a one-day lagged version is used in order to calculate weighted averages of probabilistic measures;
-* total liabilities values must be rolled forward by at least three months (keeping a daily frequency) in order to simulate the difficulty of renegotiating debt in case of financial distress following the SRISK methodology;
-* state variables and groups are optional, hence their respective sheets must be removed from the dataset if the related computations aren't necessary;
-* state variables, if defined, must contain a supplementar observation at the beginning because a one-day lagged version is required in order to follow the CoVaR/ΔCoVaR methodology.
+* they must be based on a monthly frequency;
+* they must contain enough observations to run consistent calculations (a minimum of 120 observations for at least 3 hedge funds is required);
+* they must have been previously validated and preprocessed by removing rows with NaNs or filling the gaps with an interpolation approach;
+* a minimum of 3 style factors is required;
+* groups are optional, hence their sheet must be removed from the dataset if all the hedge funds are assumed to belong to the same style.
 
 ## Screenshots
 
