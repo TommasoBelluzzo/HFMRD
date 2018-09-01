@@ -82,7 +82,8 @@ For what concerns the financial time series:
 
 ![Interactive Test Results](https://i.imgur.com/DCWEMAB.png)
 
-![Network Measures](https://i.imgur.com/NuSHgBO.png)
+![Low Correlation Test](https://i.imgur.com/DAd2ZuV.png)
 
-![Network Graph](https://i.imgur.com/fpEVHPf.png)
+![Digits Conformity Test](https://i.imgur.com/2TQw54K.png)
 
+![Data Quality Test](https://i.imgur.com/G48A1rm.png)
