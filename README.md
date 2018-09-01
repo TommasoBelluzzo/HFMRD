@@ -54,7 +54,7 @@ The benchmark is represented by the market proxy defined in Fama & French, 1993:
 * **Fama & French 5 Factors from the [French Data Library](http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html) (10)**
   * **CMA:** conservative minus aggressive, the average return on two conservative investment portfolios minus the average return on two aggressive investment portfolios.
   * **HML:** high minus slow, the average return on two value portfolios minus the average return on two growth portfolios.
-  * **MF:** the momentum factor.
+  * **MF:** the momentum factor, the average return on two high prior return portfolios minus the average return on two low prior return portfolios.
   * **RMW:** robust minus weak, the average return on two robust operating profitability portfolios minus the average return on two weak operating profitability portfolios.
   * **SMB:** small minus big, the average return on nine small stock portfolios minus the average return on nine big stock portfolios.
   
