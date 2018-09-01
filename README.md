@@ -1,36 +1,34 @@
 # HFMRD: Hedge Funds Misreported Returns Detector
 
-This script represents a full-featured framework for detecting misreported returns in hedge funds. It be used in order to perform all the tests proposed by Bollen & Pool (2008):
+This script represents a full-featured framework for detecting misreported returns in hedge funds through the following tests:
 
-* the `Primary Tests`: First Digits Analysis, Second Digits Analysis, First-Two Digits
-* the `Advanced Tests`: Third Digits Analysis, Second Order Analysis, Summation Analysis
-* the `Associated Tests`: Last-Two Digits Analysis, Number Duplication Analysis, Distortion Factor Model
-* the `Mantissae Analysis`
-* the `Zipf's Law Analysis`
-
-For each significant digit analysis, the following conformity indicators are provided:
-
-* **Goodness-of-Fit Measures (14):**
-  * Anderson-Darling Discrete (Choulakian, 1994)
-  * Chebyshev Distance (Leemis, 2000)
-  * Cramer-von Mises Discrete (Choulakian, 1994)
-  * Euclidean Distance (Cho & Gaines, 2007)
-  * Freedman's U2 (Freedman, 1981)
-  * Freeman-Tukey T2 (Freeman & Tukey, 1950)
-  * Hotelling's Joint Digits (Hotelling, 1931)
-  * Judge-Schechter Mean Deviation (Judge & Schechter, 2009)
-  * Kolmogorov-Smirnov (Kolomonorgov, 1933)
-  * Kuiper (Kuiper, 1960)
-  * Likelihood Ratio (Neyman & Pearson, 1933)
-  * Pearson's X2 (Pearson, 1900)
-  * Watson's U2 Discrete (Choulakian, 1994)
-* **Mean Absolute Deviation** (Nigrini et al., 2012)
-* **Sum of Square Differences** (Kossovsky, 2014)
-* **Z-Scores** (Nigrini et al., 2012)
+* `Low Correlation with Other Assets` (Bollen & Pool, 2008-2010):
+  * IndexRSQ
+  * MaxRSQ or SwitchRSQ with change-point regression (as per Andrews et al., 1996)
+* `Serial Correlation` (Bollen & Pool, 2008-2010):
+  * Unconditional
+  * Conditional
+* `Bias Ratio` (Abdulali, 2002)
+* `December Spike` (Agarwal et al., 2011)
+* `Discontinuity At Zero` (Bollen & Pool, 2008-2010)
+* `Digits Conformity` (Bollen & Pool, 2008-2010):
+  * Benford's Law Conformity of First Digits
+  * Uniform Distribution Conformity of Last Digits
+* `Data Quality` (Straumann, 2008):
+  * Number of Negative Returns
+  * Number of Zero Returns
+  * Number of Unique Returns
+  * Number of Pairs of Identical Returns
+  * Maximum Length of Adjacent Identical Returns
 
 ## Requirements
 
-The minimum Matlab version required is `R2014a`. In addition, the `Statistics and Machine Learning Toolbox` must be installed in order to properly execute the script.
+The minimum Matlab version required is `R2014a`. In addition, the following products and toolboxes must be installed in order to properly execute the script:
+
+* Financial Toolbox
+* Image Processing Toolbox
+* Mapping Toolbox
+* Statistics and Machine Learning Toolbox
 
 ## Dataset & Usage 
 
