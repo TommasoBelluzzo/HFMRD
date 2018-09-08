@@ -42,7 +42,7 @@ The `Test Results` plot created by the `plot_results` function is interactive an
 
 ## Dataset
 
-Every dataset must be structured like the default one included in any release of the framework (`Datasets/Example.xlsx`). The latter, based on the US financial sector, defines the following entities:
+Every dataset must be structured like the default one included in every release of the framework (`Datasets/Example.xlsx`). The latter, based on the US financial sector, defines the following entities:
 
 #### Benchmark (BM) & Risk-Free Rate (RF)
 
