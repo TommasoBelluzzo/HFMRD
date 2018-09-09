@@ -6,7 +6,7 @@ clc();
 
 [path,~,~] = fileparts(mfilename('fullpath'));
 
-if (~endsWith(path,filesep()))
+if (~strcmpi(path(end),filesep()))
     path = [path filesep()];
 end
 
