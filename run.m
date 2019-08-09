@@ -59,7 +59,8 @@ end
 paths_base = [strjoin(paths_base,';') ';'];
 addpath(paths_base);
 
-data = parse_dataset(fullfile(path,'\Datasets\Example.xlsx'));
+dset = fullfile(path_base,['Datasets' filesep() 'Example.xlsx']);
+data = parse_dataset(dset);
 td = execute_tests(data,false);
 
 plot_data(data,true);
