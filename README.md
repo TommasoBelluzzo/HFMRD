@@ -9,7 +9,7 @@ This script represents a full-featured framework for detecting misreported retur
   * Unconditional
   * Conditional
 * `Bias Ratio` ([Abdulali, 2002](https://www.protegepartners.com/www5/files/whitepapers/BiasRatioMeasuringShapeOfFraud.pdf))
-* `December Spike` (Agarwal et al., 2011)
+* `December Spike` ([Agarwal et al., 2011](https://ideas.repec.org/a/oup/rfinst/v24y2011i10p3281-3320.html))
 * `Discontinuity At Zero / Kink` (Bollen & Pool, 2008-2010)
 * `Digits Conformity` (Bollen & Pool, 2008-2010):
   * Benford's Law Conformity of First Digits
