@@ -2,16 +2,16 @@
 
 This script represents a full-featured framework for detecting misreported returns in hedge funds through the following tests:
 
-* `Low Correlation with Other Assets` ([Bollen & Pool, 2007](https://doi.org/10.2139/ssrn.1018663), [Bollen & Pool, 2010](https://doi.org/10.2139/ssrn.1569626)):
+* `Low Correlation with Other Assets` ([Bollen & Pool, 2007](https://doi.org/10.2139/ssrn.1018663); [Bollen & Pool, 2010](https://doi.org/10.2139/ssrn.1569626)):
   * IndexRSQ
   * MaxRSQ or SwitchRSQ with change-point regression (as per [Andrews et al., 1996](https://doi.org/10.1016/0304-4076(94)01682-8))
-* `Serial Correlation` ([Bollen & Pool, 2007](https://doi.org/10.2139/ssrn.1018663), [Bollen & Pool, 2010](https://doi.org/10.2139/ssrn.1569626)):
+* `Serial Correlation` ([Bollen & Pool, 2007](https://doi.org/10.2139/ssrn.1018663); [Bollen & Pool, 2010](https://doi.org/10.2139/ssrn.1569626)):
   * Unconditional
   * Conditional
 * `Bias Ratio` ([Abdulali, 2002](https://www.protegepartners.com/www5/files/whitepapers/BiasRatioMeasuringShapeOfFraud.pdf))
 * `December Spike` ([Agarwal et al., 2011](https://doi.org/10.1093/rfs/hhr058))
 * `Discontinuity At Zero / Kink` (Bollen & Pool, 2008-2010)
-* `Digits Conformity` ([Bollen & Pool, 2007](https://doi.org/10.2139/ssrn.1018663), [Bollen & Pool, 2010](https://doi.org/10.2139/ssrn.1569626)):
+* `Digits Conformity` ([Bollen & Pool, 2007](https://doi.org/10.2139/ssrn.1018663); [Bollen & Pool, 2010](https://doi.org/10.2139/ssrn.1569626)):
   * Benford's Law Conformity of First Digits
   * Uniform Distribution Conformity of Last Digits
 * `Data Quality` ([Straumann, 2009](https://doi.org/10.3905/jai.2009.12.2.026)):
