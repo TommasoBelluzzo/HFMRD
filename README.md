@@ -14,7 +14,7 @@ This script represents a full-featured framework for detecting misreported retur
 * `Digits Conformity` (Bollen & Pool, 2008-2010):
   * Benford's Law Conformity of First Digits
   * Uniform Distribution Conformity of Last Digits
-* `Data Quality` (Straumann, 2008):
+* `Data Quality` ([Straumann, 2009](https://doi.org/10.3905/jai.2009.12.2.026)):
   * Number of Negative Returns
   * Number of Zero Returns
   * Number of Unique Returns
