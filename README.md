@@ -8,7 +8,7 @@ This script represents a full-featured framework for detecting misreported retur
 * `Serial Correlation` (Bollen & Pool, 2008-2010):
   * Unconditional
   * Conditional
-* `Bias Ratio` (Abdulali, 2002)
+* `Bias Ratio` ([Abdulali, 2002](https://www.protegepartners.com/www5/files/whitepapers/BiasRatioMeasuringShapeOfFraud.pdf))
 * `December Spike` (Agarwal et al., 2011)
 * `Discontinuity At Zero / Kink` (Bollen & Pool, 2008-2010)
 * `Digits Conformity` (Bollen & Pool, 2008-2010):
