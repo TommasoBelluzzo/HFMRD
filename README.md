@@ -2,7 +2,7 @@
 
 This script represents a full-featured framework for detecting misreported returns in hedge funds through the following tests:
 
-* `Low Correlation with Other Assets` (Bollen & Pool, 2008-2010):
+* `Low Correlation with Other Assets` (2008, [Bollen & Pool, 2010](https://dx.doi.org/10.2139/ssrn.1569626)):
   * IndexRSQ
   * MaxRSQ or SwitchRSQ with change-point regression (as per [Andrews et al., 1996](https://doi.org/10.1016/0304-4076(94)01682-8))
 * `Serial Correlation` (Bollen & Pool, 2008-2010):
