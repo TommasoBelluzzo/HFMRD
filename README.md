@@ -4,7 +4,7 @@ This script represents a full-featured framework for detecting misreported retur
 
 * `Low Correlation with Other Assets` (Bollen & Pool, 2008-2010):
   * IndexRSQ
-  * MaxRSQ or SwitchRSQ with change-point regression (as per [Andrews et al., 1996](https://ideas.repec.org/a/eee/econom/v70y1996i1p9-38.html))
+  * MaxRSQ or SwitchRSQ with change-point regression (as per [Andrews et al., 1996](https://doi.org/10.1016/0304-4076(94)01682-8))
 * `Serial Correlation` (Bollen & Pool, 2008-2010):
   * Unconditional
   * Conditional
