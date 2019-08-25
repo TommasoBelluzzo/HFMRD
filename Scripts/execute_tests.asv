@@ -82,7 +82,7 @@ function [results,summary] = execute_tests_internal(data,a,simulations,style_fac
             for i = 1:7
                 test_current = output{i,j};
                 coefficients(i) = test_current.FailureCoefficient;
-                failures(i) = test_current.Failure;
+                failures(i) = test_current.Fail;
             end
 
             coefficients(8) = sum(coefficients(1:7));
@@ -123,8 +123,8 @@ function output = test_bias_ratio(params,firm_name,r,r_h0)
     output.Params = params;
     output.FirmName = firm_name;
 
-    output.Failure = (bias_ratio >= 2.5) & (pval < params.A);
-    output.FailureCoefficient = 1 * output.Failure;
+    output.Fail = (bias_ratio >= 2.5) & (pval < params.A);
+    output.FailureCoefficient = output.Fail;
     
     output.Data = struct();
     output.Data.BiasRatio = bias_ratio;
@@ -200,8 +200,7 @@ function output = test_data_quality(params,frm,r,r_h0)
     output.Flags = 5;
     output.Params = params;
     output.FirmName = frm;
-
-    output.Failure = fail_neg | fail_pai | fail_str | fail_uni | fail_zer;
+    output.Fail = fail_neg | fail_pai | fail_str | fail_uni | fail_zer;
     output.FailureCoefficient = (fail_neg + fail_pai + fail_str + fail_uni + fail_zer) / 5;
     
     output.Data = struct();
@@ -260,8 +259,8 @@ function output = test_december_spike(params,firm_name,r,r_h0)
     output.Params = params;
     output.FirmName = firm_name;
 
-    output.Failure = (spread > spread_h0);
-    output.FailureCoefficient = 1 * output.Failure;
+    output.Fail = (spread > spread_h0);
+    output.FailureCoefficient = output.Fail;
     
     output.Data = struct();
     output.Data.Dec = sum(indices);
@@ -313,7 +312,7 @@ function res = test_digits_conformity(params,frm,ret,dec)
     res.Params = params;
     res.FirmName = frm;
 
-    res.Failure = fail_fst | fail_lst;
+    res.Fail = fail_fst | fail_lst;
     res.FailureCoefficient = (fail_fst + fail_lst) / 2;
 
     res.Data = struct();
@@ -363,8 +362,8 @@ function output = test_discontinuity_at_zero(params,firm_name,r)
     output.Params = params;
     output.FirmName = firm_name;
 
-    output.Failure = (diff < 0) & (pval < params.A);
-    output.FailureCoefficient = 1 * output.Failure;
+    output.Fail = (diff < 0) & (pval < params.A);
+    output.FailureCoefficient = output.Fail;
 
     output.Data = struct();
     output.Data.Bins = bins;
@@ -514,13 +513,11 @@ function [res,returns_fitted] = test_low_correlation(par,firm_name,returns,retur
     fail_max = (r2_max < ret_h0_prc);
     
     res = struct();
-
     res.Type = 'LC';
     res.Flags = 2;
     res.Params = par;
     res.FirmName = firm_name;
-
-    res.Failure = fail_idx | fail_max;
+    res.Fail = fail_idx | fail_max;
     res.FailureCoefficient = (fail_idx + fail_max) / 2;
 
     res.Data = struct();
@@ -563,13 +560,13 @@ function output = test_serial_correlation(params,firm_name,r,r_fitted)
     output.Params = params;
     output.FirmName = firm_name;
 
-    output.Failure = failure_conditional | failure_unconditional;
+    output.Fail = failure_conditional | failure_unconditional;
     output.FailureCoefficient = (failure_conditional + failure_unconditional) / 2;
     
     output.Data = struct();
-    output.Data.ConditionalFailure = failure_conditional;
-    output.Data.ConditionalModel = mdl_conditional;
-    output.Data.UnconditionalFailure = failure_unconditional;
-    output.Data.UnconditionalModel = mdl_unconditional;
+    output.Data.ConFail = failure_conditional;
+    output.Data.ConMod = mdl_conditional;
+    output.Data.UncFail = failure_unconditional;
+    output.Data.UncMod = mdl_unconditional;
 
 end

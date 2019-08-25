@@ -39,7 +39,7 @@ function plot_results_internal(results)
             result = results{j,i};
             coefficient_total = coefficient_total + result.FailureCoefficient;
             
-            if (result.Failure)
+            if (result.Fail)
                 successes(j,i) = NaN;
             else
                 failures(j,i) = NaN;
@@ -93,7 +93,7 @@ function plot_results_switch(obj,event_data,result) %#ok<INUSL>
     switch (result.Type)          
         case 'Bias Ratio'
             plot_test_bias_ratio(result);
-        case 'Digits Conformity'
+        case 'DC'
             plot_test_digits_conformity(result);
         case 'DQ'
             plot_test_data_quality(result);
@@ -117,37 +117,38 @@ function plot_test_bias_ratio(result)
     
     [bins,edges] = histcounts(data.H0,10);
     edges_width = edges(2) - edges(1);
-    edges_sequence = [fliplr((edges(1)-edges_width):-edges_width:0) edges(1):edges_width:max(edges(end),((ceil(data.BiasRatio * 2) / 2) * 1.05))];
+    edges_sequence = [fliplr((edges(1)-edges_width):-edges_width:0) edges(1):edges_width:max(edges(end),((ceil(data.BR * 2) / 2) * 1.05))];
 
-    all_title = sprintf('Bias Ratio Test on %s',result.FirmName);
+    all_tit = sprintf('Bias Ratio Test on %s',result.FirmName);
 
-    if (result.Failure)
-        all_color = [0.800 0.000 0.000];
-        all_result = 'Failure';
+    if (result.Fail)
+        all_clr = [0.800 0.000 0.000];
+        all_res = 'Failure';
     else
-        all_color = [0.298 0.800 0.000];
-        all_result = 'Success';
+        all_clr = [0.298 0.800 0.000];
+        all_res = 'Success';
     end
     
-    f = figure('Name',all_title,'Tag','TestPlot','Units','normalized','Position',[100 100 0.85 0.85]);
+    f = figure('Name',all_tit,'Tag','TestPlot','Units','normalized','Position',[100 100 0.85 0.85]);
 
     sub_1 = subplot(13,9,[10 117]);
     histogram(sub_1,'BinEdges',edges,'BinCounts',bins,'FaceAlpha',1,'FaceColor',[0.239 0.149 0.659]);
     hold on;
-        y_max = get(sub_1,'YLim');
-        line([data.BiasRatio data.BiasRatio],[0 y_max(2)],'Color',all_color,'LineWidth',1.5);
+        ymax = get(sub_1,'YLim');
+        line([data.BR data.BR],[0 ymax(2)],'Color',all_clr,'LineWidth',1.5);
     hold off;
     set(sub_1,'XLim',[edges_sequence(1) edges_sequence(end)],'XTick',edges_sequence,'XTickLabel',sprintfc('%.2f',edges_sequence));
     xlabel('Simulated Bias Ratios');
     ylabel('Counts');
     
-    t = figure_title(sprintf('%s\nValue: %.2f | p-Value: %.4f\nResult: %s',all_title,data.BiasRatio,data.PVal,all_result));
-    t_position = get(t,'Position');
-    set(t,'Color',all_color,'Position',[0.5170 -0.080 t_position(3)]);
+    st = figure_title(sprintf('%s\nValue: %.2f | p-Value: %.4f\nResult: %s',all_tit,data.BR,data.PVal,all_res));
+    st_pos = get(st,'Position');
+    set(st,'Color',all_clr,'Position',[0.5170 -0.080 st_pos(3)]);
 
     pause(0.01);
-    frame = get(f,'JavaFrame');
-    set(frame,'Maximized',true);
+
+    jfr = get(f,'JavaFrame');
+    set(jfr,'Maximized',true);
 
 end
 
@@ -165,7 +166,7 @@ function plot_test_data_quality(td)
         all_plur = 's';
     end
     
-    if (td.Failure)
+    if (td.Fail)
         all_res = 'Failure';
     else
         all_res = 'Success';
@@ -322,7 +323,7 @@ function plot_test_december_spike(td)
 
     all_tit = sprintf('December Spike Test on %s',td.FirmName);
 
-    if (td.Failure)
+    if (td.Fail)
         all_clr = [0.800 0.000 0.000];
         all_res = 'Failure';
     else
@@ -374,7 +375,7 @@ function plot_test_digits_conformity(td)
         all_plur = 's';
     end
     
-    if (td.Failure)
+    if (td.Fail)
         all_res = 'Failure';
     else
         all_res = 'Success';
@@ -449,7 +450,7 @@ function plot_test_discontinuity_at_zero(td)
 
     all_tit = sprintf('Discontinuity At Zero Test on %s',td.FirmName);
 
-    if (td.Failure)
+    if (td.Fail)
         all_clr = [0.800 0.000 0.000];
         all_res = 'Failure';
     else
@@ -494,7 +495,7 @@ function plot_test_low_conformity(td)
         all_plur = 's';
     end
     
-    if (td.Failure)
+    if (td.Fail)
         all_res = 'Failure';
     else
         all_res = 'Success';
@@ -613,13 +614,13 @@ function plot_test_serial_correlation(td)
         all_plur = 's';
     end
     
-    if (td.Failure)
+    if (td.Fail)
         all_res = 'Failure';
     else
         all_res = 'Success';
     end
     
-    unc_mdl = data.UnconditionalModel;
+    unc_mdl = data.UncMod;
     unc_a = unc_mdl.Coefficients{1,1};
     unc_b = unc_mdl.Coefficients{2,1};
     unc_pval = unc_mdl.Coefficients{2,4};
@@ -633,13 +634,13 @@ function plot_test_serial_correlation(td)
     
     unc_txt = sprintf('Unconditional Serial Correlation\nModel: Rt = %.4f %s %.4f * R(t-1)\nAdjusted R2: %.2f%% | B: %.4f | B p-Value: %.4f',unc_a,sign_b,abs(unc_b),unc_r2a,unc_b,unc_pval);
     
-    if (data.UnconditionalFailure)
+    if (data.UncFail)
         unc_clr = [0.800 0.000 0.000];
     else
         unc_clr = [0.298 0.800 0.000];
     end
     
-    con_mdl = data.ConditionalModel;
+    con_mdl = data.ConMod;
     con_a = con_mdl.Coefficients{1,1};
     con_b_pos = con_mdl.Coefficients{2,1};
     con_b_neg = con_mdl.Coefficients{3,1};
@@ -660,7 +661,7 @@ function plot_test_serial_correlation(td)
     
     con_txt = sprintf('Conditional Serial Correlation\nModel: Rt = %.4f %s %.4f * R(t-1) %s %.4f * [1 - I(t-1)] * R(t-1)\nAdjusted R2: %.2f%% | B2: %.4f | B2 p-Value: %.4f',con_a,sign_b_pos,abs(con_b_pos),sign_b_neg,abs(con_b_neg),con_r2a,con_b_neg,con_pval);
     
-    if (data.ConditionalFailure)
+    if (data.ConFail)
         con_clr = [0.800 0.000 0.000];
     else
         con_clr = [0.298 0.800 0.000];

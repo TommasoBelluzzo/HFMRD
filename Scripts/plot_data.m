@@ -1,5 +1,5 @@
 % [INPUT]
-% data     = The results returned by the "execute_tests" function.
+% data     = A structure representing the dataset.
 % detailed = A boolean indicating whether to create a detailed plot for each time series of fund returns in the dataset (optional, default=false).
 
 function plot_data(varargin)
