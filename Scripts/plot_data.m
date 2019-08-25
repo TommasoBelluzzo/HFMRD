@@ -29,13 +29,13 @@ function plot_data_internal(data,detailed)
         benchmark = data.Benchmark;
         benchmark_cp = cumprod(1 + benchmark) - 1;
 
-        if (numel(unique(data.Grps)) == 1)
-            for i = 1:data.Frms
-                plot_fund_details(data.DatesNum,benchmark,benchmark_cp,data.FrmsRet(:,i),data.FirmNames{i},NaN);
+        if (numel(unique(data.Groups)) == 1)
+            for i = 1:data.N
+                plot_fund_details(data.DatesNum,benchmark,benchmark_cp,data.FirmReturns(:,i),data.FirmNames{i},NaN);
             end
         else
-            for i = 1:data.Frms
-                plot_fund_details(data.DatesNum,benchmark,benchmark_cp,data.FrmsRet(:,i),data.FirmNames{i},data.Grps(i));
+            for i = 1:data.N
+                plot_fund_details(data.DatesNum,benchmark,benchmark_cp,data.FirmReturns(:,i),data.FirmNames{i},data.Groups(i));
             end
         end
     end
@@ -120,7 +120,7 @@ function plot_funds_overview(data)
         0.800 0.922 0.773
 	];
 
-    groups = data.Grps;
+    groups = data.Groups;
     groups_unique = sort(unique(groups));
     groups_len = numel(groups_unique);
     groups_legend = gobjects(groups_len,1);
@@ -131,15 +131,14 @@ function plot_funds_overview(data)
     benchmark_indices_up = benchmark > 0;
     benchmark_up = sum(benchmark(benchmark_indices_up));
 
-    ret_exc = data.FrmsRet - repmat(data.RiskFree,1,data.Frms);
-    ret_exc_ann = (prod(1 + ret_exc) .^ (12 / data.Obs)) - 1;
-    ret_std_ann = sqrt(12) .* std(data.FrmsRet);
+    r_excess = data.FirmReturns - repmat(data.RiskFree,1,data.N);
+    r_excess_annualized = (prod(1 + r_excess) .^ (12 / data.T)) - 1;
     
-    capture_down = [1; zeros(data.Frms,1)];
-    capture_up = [1; zeros(data.Frms,1)];
+    capture_down = [1; zeros(data.N,1)];
+    capture_up = [1; zeros(data.N,1)];
     
-    for i = 1:data.Frms
-        r = data.FrmsRet(:,i);
+    for i = 1:data.N
+        r = data.FirmReturns(:,i);
 
         capture_down(i+1) = sum(r(benchmark_indices_down)) / benchmark_down;
         capture_up(i+1) = sum(r(benchmark_indices_up)) / benchmark_up;
@@ -152,23 +151,27 @@ function plot_funds_overview(data)
     capture_ratio_max = max(capture_down_x_max,capture_up_y_max);
     capture_ratio_min = min(capture_down_x_min,capture_up_y_min);
 
-    sortino_ratios = ret_exc_ann ./ ret_std_ann;
+    sortino_ratios = r_excess_annualized ./ (sqrt(12) .* std(data.FirmReturns));
     sortino_ratios_avg = mean(sortino_ratios);
 
     f = figure('Name','Funds Overview','Units','normalized','Position',[100 100 0.85 0.85]);
 
     sub_1 = subplot(13,9,[10 54]);
-    b = boxplot([data.Benchmark data.FrmsRet],'Symbol','k.');
+    b = boxplot([data.Benchmark data.FirmReturns],'Symbol','k.');
+    set(findobj(sub_1,'Type','Line','Tag','Box'),'Color','k');
+    set(findobj(sub_1,'Type','Line','Tag','Median'),'Color','k');
+    set(findobj(sub_1,'-regexp','Tag','\w*Whisker'),'LineStyle','-');
     hold on;
-        set(findobj(sub_1,'Type','Line','Tag','Box'),'Color','k');
-        set(findobj(sub_1,'Type','Line','Tag','Median'),'Color','k');
-        set(findobj(sub_1,'-regexp','Tag','\w*Whisker'),'LineStyle','-');
         h = get(b(5,:),{'XData','YData'});
-        patch(h{1,1},h{1,2},colors(1,:));       
-        for i = 2:size(h,1),patch(h{i,1},h{i,2},colors(groups(i-1)+1,:)),end
-        chil = get(sub_1,'Children');
-        set(sub_1,'Children',chil([end 1:end-1]));
-        for i = 1:groups_len;groups_legend(i)=area(0,NaN,'FaceColor',colors(i+1,:),'ShowBaseLine','off');end
+        patch(h{1,1},h{1,2},colors(1,:));
+        for i = 2:size(h,1)
+            patch(h{i,1},h{i,2},colors(groups(i-1)+1,:))
+        end     
+        sub_1_children = get(sub_1,'Children');
+        set(sub_1,'Children',sub_1_children([end 1:end-1]));
+        for i = 1:groups_len
+            groups_legend(i) = area(0,NaN,'FaceColor',colors(i+1,:),'ShowBaseLine','off');
+        end
     hold off;
     set(sub_1,'XTickLabel',[{'Benchmark'} data.FirmNames]);
     t1 = title(sub_1,'Boxes','Units','normalized');
@@ -180,8 +183,10 @@ function plot_funds_overview(data)
     hold on;
         line([capture_ratio_min capture_ratio_max],[1 1],'Color',colors(1,:));
         line([1 1],[capture_ratio_min capture_ratio_max],'Color',colors(1,:));
-        text(1.03,1.07,'Benchmark','Color',colors(1,:),'Clipping','on');
-        for i = 1:data.Frms;text(capture_down(i+1)+0.03,capture_up(i+1)+0.03,data.FirmNames{i},'Clipping','on');end
+        text(1.03,1.07,'Benchmark','Color',colors(1,:),'Clipping','on');    
+        for i = 1:data.N
+            text(capture_down(i+1)+0.03,capture_up(i+1)+0.03,data.FirmNames{i},'Clipping','on')
+        end
     hold off;
     grid on;
     set(sub_2,'Box','on');
@@ -197,12 +202,12 @@ function plot_funds_overview(data)
             group = groups_unique(i);
             sortino_ratios_current = sortino_ratios;
             sortino_ratios_current(groups ~= group) = NaN;
-            bar(1:data.Frms,sortino_ratios_current,'FaceColor',colors(group+1,:));
+            bar(1:data.N,sortino_ratios_current,'FaceColor',colors(group+1,:));
         end
-        text(1:data.Frms,sortino_ratios,sprintfc('%.2f',sortino_ratios),'HorizontalAlignment','center','VerticalAlignment','bottom');
-        line([0.5 (data.Frms + 0.5)],[sortino_ratios_avg sortino_ratios_avg],'Color','k');
+        text(1:data.N,sortino_ratios,sprintfc('%.2f',sortino_ratios),'HorizontalAlignment','center','VerticalAlignment','bottom');
+        line([0.5 (data.N + 0.5)],[sortino_ratios_avg sortino_ratios_avg],'Color','k');
     hold off;
-    set(sub_3,'XLim',[0.5 (data.Frms + 0.5)],'XTick',1:data.Frms,'XTickLabel',data.FirmNames);
+    set(sub_3,'XLim',[0.5 (data.N + 0.5)],'XTick',1:data.N,'XTickLabel',data.FirmNames);
     title(sub_3,'Sharpe Ratios');
 
     if (groups_len > 1)
@@ -211,7 +216,7 @@ function plot_funds_overview(data)
         set(l,'Box','off','Position',[((1 - l_position(3)) / 2) 0.47 l_position(3) l_position(4)]);
     end
 
-    figure_title(sprintf('Returns Overview\nObservations: %d | First: %s | Last: %s',data.Obs,datestr(data.DatesNum(1),'mm/yyyy'),datestr(data.DatesNum(end),'mm/yyyy')));
+    figure_title(sprintf('Returns Overview\nObservations: %d | First: %s | Last: %s',data.T,datestr(data.DatesNum(1),'mm/yyyy'),datestr(data.DatesNum(end),'mm/yyyy')));
 
     pause(0.01);
     frame = get(f,'JavaFrame');

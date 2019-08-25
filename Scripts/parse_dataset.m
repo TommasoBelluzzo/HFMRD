@@ -176,17 +176,17 @@ function data = parse_dataset_internal(file,date_format)
     
     data = struct();
     
-    data.Obs = t;
-    data.Frms = firms;
+    data.T = t;
+    data.N = firms;
     
     data.DatesNum = dates_num;
     data.DatesStr = dates_str;
 
     data.FirmNames = firm_names;
-    data.FrmsRet = firm_returns;
+    data.FirmReturns = firm_returns;
     data.StyleFactors = style_factors;
     data.StyleFactorsNames = style_factors_names;
-    data.Grps = groups_indices;
+    data.Groups = groups_indices;
 
     data.Benchmark = benchmark;
     data.BenchmarkAnnualized = (prod(1 + benchmark) ^ (12 / t)) - 1;
@@ -199,7 +199,6 @@ function data = parse_dataset_internal(file,date_format)
     data.RiskFreeAverage = mean(risk_free);
 
     data.MAR = mean(risk_free) + (2 * std(risk_free));
-    data.PerAdj = sqrt(12);
     data.RiskAversion = (log(mean(1 + benchmark)) - log(mean(1 + risk_free))) / var(1 + benchmark);
 
 end

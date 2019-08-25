@@ -45,37 +45,37 @@ function [results,summary] = execute_tests_internal(data,a,simulations,style_fac
     params = struct();
     params.A = a;
     params.Dates = data.DatesNum;
-    params.Obs = data.Obs;
+    params.T = data.T;
     params.Sims = simulations;
 
     style_factors_comb = nchoosek(1:size(data.StyleFactors,2),style_factors_max);
 
-    output = cell(7,data.Frms);
+    output = cell(7,data.N);
     
-    for i = 1:data.Frms
+    for i = 1:data.N
         firm_name = data.FirmNames{i};
         
-        returns = data.FrmsRet(:,i);
-        returns_h0 = round(normrnd(mean(returns),std(returns),[data.Obs simulations]),4);
-        returns_other = data.FrmsRet(:,(~strcmp(data.FirmNames,data.FirmNames(i)) & (data.Grps == data.Grps(i))));
+        r = data.FirmReturns(:,i);
+        r_h0 = round(normrnd(mean(r),std(r),[data.T simulations]),4);
+        r_other = data.FirmReturns(:,(~strcmp(data.FirmNames,data.FirmNames(i)) & (data.Groups == data.Groups(i))));
 
-        [output_lc,returns_fitted] = test_low_correlation(params,firm_name,returns,returns_h0,returns_other,data.StyleFactors,style_factors_comb,data.StyleFactorsNames,r2_switch);
+        [output_lc,returns_fitted] = test_low_correlation(params,firm_name,r,r_h0,r_other,data.StyleFactors,style_factors_comb,data.StyleFactorsNames,r2_switch);
 
         output{1,i} = output_lc;
-        output{2,i} = test_serial_correlation(params,firm_name,returns,returns_fitted);
-        output{3,i} = test_bias_ratio(params,firm_name,returns,returns_h0);
-        output{4,i} = test_december_spike(params,firm_name,returns,returns_h0);
-        output{5,i} = test_discontinuity_at_zero(params,firm_name,returns);
-        output{6,i} = test_digits_conformity(params,firm_name,returns,decimals);
-        output{7,i} = test_data_quality(params,firm_name,returns,returns_h0);
+        output{2,i} = test_serial_correlation(params,firm_name,r,returns_fitted);
+        output{3,i} = test_bias_ratio(params,firm_name,r,r_h0);
+        output{4,i} = test_december_spike(params,firm_name,r,r_h0);
+        output{5,i} = test_discontinuity_at_zero(params,firm_name,r);
+        output{6,i} = test_digits_conformity(params,firm_name,r,decimals);
+        output{7,i} = test_data_quality(params,firm_name,r,r_h0);
     end
 
     results = output;
 
     if (nargout == 2)
-        summary = cell(data.Frms,1);
+        summary = cell(data.N,1);
 
-        for j = 1:data.Frms
+        for j = 1:data.N
             coefficients = zeros(8,1);
             failures = false(8,1);
 
@@ -97,23 +97,23 @@ function [results,summary] = execute_tests_internal(data,a,simulations,style_fac
 
 end
 
-function output = test_bias_ratio(params,firm_name,returns,returns_h0)
+function output = test_bias_ratio(params,firm_name,r,r_h0)
 
-    upper_bound = std(returns);
+    upper_bound = std(r);
     lower_bound = -upper_bound;
-    bias_ratio = sum((returns >= 0) & (returns <= upper_bound)) / sum((returns >= lower_bound) & (returns < 0));
+    bias_ratio = sum((r >= 0) & (r <= upper_bound)) / sum((r >= lower_bound) & (r < 0));
 
-    bias_ratios_h0 = zeros(size(returns_h0,2),1);
+    bias_ratios_h0 = zeros(size(r_h0,2),1);
     
-    for i = 1:size(returns_h0,2)
-        r = returns_h0(:,i);
+    for i = 1:size(r_h0,2)
+        r = r_h0(:,i);
         
         upper_bound = std(r);
         lower_bound = -upper_bound;
         bias_ratios_h0(i) = sum((r >= 0) & (r <= upper_bound)) / sum((r >= lower_bound) & (r < 0));
     end
     
-    pval = sum(bias_ratios_h0 >= (bias_ratio - 1e-8)) / size(returns_h0,2);
+    pval = sum(bias_ratios_h0 >= (bias_ratio - 1e-8)) / size(r_h0,2);
     pval = max([0 min([pval 1])]);
     
     output = struct();
@@ -133,20 +133,17 @@ function output = test_bias_ratio(params,firm_name,returns,returns_h0)
 
 end
 
-function res = test_data_quality(par,frm,ret,ret_h0)
+function output = test_data_quality(params,frm,r,r_h0)
 
-    a = par.A;
-    n = par.Obs;
+    r = round(r,2);
+    ret_diff = diff([0; find(diff(r)); params.T]);
 
-    ret = round(ret,2);
-    ret_diff = diff([0; find(diff(ret)); n]);
+    r_h0 = round(r_h0,2);
+    ret_h0_len = size(r_h0,2);
 
-    ret_h0 = round(ret_h0,2);
-    ret_h0_len = size(ret_h0,2);
-
-    ret_neg = sum(ret < 0);
-    ret_h0_neg = sum(ret_h0 < 0);
-    ret_h0_neg_prc = prctile(ret_h0_neg,(a * 100));
+    ret_neg = sum(r < 0);
+    ret_h0_neg = sum(r_h0 < 0);
+    ret_h0_neg_prc = prctile(ret_h0_neg,(params.A * 100));
 
     [ret_h0_neg_f,ret_h0_neg_x] = ecdf(ret_h0_neg);
     ret_h0_neg_x(1) = max([0 (ret_h0_neg_x(1) - 1)]);
@@ -157,34 +154,34 @@ function res = test_data_quality(par,frm,ret,ret_h0)
     ret_h0_pai = zeros(ret_h0_len,1);
     
     for i = 1:ret_h0_len
-        ret_h0_d = diff([0; find(diff(ret_h0(:,i))); n]);
+        ret_h0_d = diff([0; find(diff(r_h0(:,i))); params.T]);
         ret_h0_pai(i) = sum(ret_h0_d(ret_h0_d > 1) - 1);
     end
     
-    ret_h0_pai_prc = prctile(ret_h0_pai,((1 - a) * 100));
+    ret_h0_pai_prc = prctile(ret_h0_pai,((1 - params.A) * 100));
 
     ret_str = max([0; ret_diff(ret_diff > 1)]);
     ret_h0_str = zeros(ret_h0_len,1);
     
     for i = 1:ret_h0_len
-        ret_h0_d = diff([0; find(diff(ret_h0(:,i))); n]);
+        ret_h0_d = diff([0; find(diff(r_h0(:,i))); params.T]);
         ret_h0_str(i) = max([0; ret_h0_d(ret_h0_d > 1)]);
     end
 
-    ret_h0_str_prc = prctile(ret_h0_str,((1 - a) * 100));
+    ret_h0_str_prc = prctile(ret_h0_str,((1 - params.A) * 100));
 
-    ret_uni = numel(unique(ret));
+    ret_uni = numel(unique(r));
     ret_h0_uni = zeros(ret_h0_len,1);
     
     for i = 1:ret_h0_len
-        ret_h0_uni(i) = numel(unique(ret_h0(:,i)));
+        ret_h0_uni(i) = numel(unique(r_h0(:,i)));
     end
     
-    ret_h0_uni_prc = prctile(ret_h0_uni,(a * 100));
+    ret_h0_uni_prc = prctile(ret_h0_uni,(params.A * 100));
 
-    ret_zer = sum(ret == 0);
-    ret_h0_zer = sum(ret_h0 == 0);
-    ret_h0_zer_prc = prctile(ret_h0_zer,((1 - a) * 100));
+    ret_zer = sum(r == 0);
+    ret_h0_zer = sum(r_h0 == 0);
+    ret_h0_zer_prc = prctile(ret_h0_zer,((1 - params.A) * 100));
 
     [ret_h0_zer_f,ret_h0_zer_x] = ecdf(ret_h0_zer);
     ret_h0_zer_f = 1 - ret_h0_zer_f;
@@ -198,62 +195,62 @@ function res = test_data_quality(par,frm,ret,ret_h0)
     fail_uni = (ret_uni < ret_h0_uni_prc);
     fail_zer = (ret_zer > ret_h0_zer_prc);
 
-    res = struct();
-    res.Type = 'DQ';
-    res.Flags = 5;
-    res.Par = par;
-    res.Frm = frm;
-    res.Fail = fail_neg | fail_pai | fail_str | fail_uni | fail_zer;
-    res.FailCoef = (fail_neg + fail_pai + fail_str + fail_uni + fail_zer) / 5;
+    output = struct();
+    output.Type = 'DQ';
+    output.Flags = 5;
+    output.Par = params;
+    output.Frm = frm;
+    output.Fail = fail_neg | fail_pai | fail_str | fail_uni | fail_zer;
+    output.FailCoef = (fail_neg + fail_pai + fail_str + fail_uni + fail_zer) / 5;
     
-    res.Data = struct();
-    res.Data.NegFail = fail_neg;
-    res.Data.NegCV = ret_h0_neg_cv;
-    res.Data.NegH0 = ret_h0_neg;
-    res.Data.NegProbF = ret_h0_neg_f;
-    res.Data.NegProbX = ret_h0_neg_x;
-    res.Data.NegTest = ret_h0_neg_prc;
-    res.Data.NegVal = ret_neg;
-    res.Data.NegVI = ret_h0_neg_vi;
-    res.Data.PaiFail = fail_pai;
-    res.Data.PaiH0 = ret_h0_pai;
-    res.Data.PaiTest = ret_h0_pai_prc;
-    res.Data.PaiVal = ret_pai;
-    res.Data.StrFail = fail_str;
-    res.Data.StrH0 = ret_h0_str;
-    res.Data.StrTest = ret_h0_str_prc;
-    res.Data.StrVal = ret_str;
-    res.Data.UniFail = fail_uni;
-    res.Data.UniH0 = ret_h0_uni;
-    res.Data.UniTest = ret_h0_uni_prc;
-    res.Data.UniVal = ret_uni;
-    res.Data.ZerFail = fail_zer;
-    res.Data.ZerCV = ret_h0_zer_cv;
-    res.Data.ZerH0 = ret_h0_zer;
-    res.Data.ZerProbF = ret_h0_zer_f;
-    res.Data.ZerProbX = ret_h0_zer_x;
-    res.Data.ZerTest = ret_h0_zer_prc;
-    res.Data.ZerVal = ret_zer;
-    res.Data.ZerVI = ret_h0_zer_vi;
+    output.Data = struct();
+    output.Data.NegFail = fail_neg;
+    output.Data.NegCV = ret_h0_neg_cv;
+    output.Data.NegH0 = ret_h0_neg;
+    output.Data.NegProbF = ret_h0_neg_f;
+    output.Data.NegProbX = ret_h0_neg_x;
+    output.Data.NegTest = ret_h0_neg_prc;
+    output.Data.NegVal = ret_neg;
+    output.Data.NegVI = ret_h0_neg_vi;
+    output.Data.PaiFail = fail_pai;
+    output.Data.PaiH0 = ret_h0_pai;
+    output.Data.PaiTest = ret_h0_pai_prc;
+    output.Data.PaiVal = ret_pai;
+    output.Data.StrFail = fail_str;
+    output.Data.StrH0 = ret_h0_str;
+    output.Data.StrTest = ret_h0_str_prc;
+    output.Data.StrVal = ret_str;
+    output.Data.UniFail = fail_uni;
+    output.Data.UniH0 = ret_h0_uni;
+    output.Data.UniTest = ret_h0_uni_prc;
+    output.Data.UniVal = ret_uni;
+    output.Data.ZerFail = fail_zer;
+    output.Data.ZerCV = ret_h0_zer_cv;
+    output.Data.ZerH0 = ret_h0_zer;
+    output.Data.ZerProbF = ret_h0_zer_f;
+    output.Data.ZerProbX = ret_h0_zer_x;
+    output.Data.ZerTest = ret_h0_zer_prc;
+    output.Data.ZerVal = ret_zer;
+    output.Data.ZerVI = ret_h0_zer_vi;
 
 end
 
-function output = test_december_spike(params,firm_name,returns,returns_h0)
+function output = test_december_spike(params,firm_name,r,r_h0)
 
     indices = (month(params.Dates) == 12);
     
-    returns_december = returns(indices,:);
-    returns_december_avg = mean(returns_december);
-    returns_other = returns(~indices,:);
-    returns_other_avg = mean(returns_other);
-    spread = returns_december_avg - returns_other_avg;
+    r_december = r(indices,:);
+    r_december_avg = mean(r_december);
+    r_other = r(~indices,:);
+    r_other_avg = mean(r_other);
+    spread = r_december_avg - r_other_avg;
     
-    returns_h0_december = returns_h0(indices,:);
-    returns_h0_december_avg = mean(returns_h0_december);
-    returns_h0_other = returns_h0(~indices,:);
-    returns_h0_other_avg = mean(returns_h0_other);
-    spread_h0 = returns_h0_december_avg - returns_h0_other_avg;
-    percentile_h0 = prctile(spread_h0,((1 - params.A) * 100));
+    r_h0_december = r_h0(indices,:);
+    r_h0_december_avg = mean(r_h0_december);
+    r_h0_other = r_h0(~indices,:);
+    r_h0_other_avg = mean(r_h0_other);
+    spreads_h0 = r_h0_december_avg - r_h0_other_avg;
+    spread_h0 = prctile(spreads_h0,((1 - params.A) * 100));
     
     output = struct();
 
@@ -262,17 +259,17 @@ function output = test_december_spike(params,firm_name,returns,returns_h0)
     output.Par = params;
     output.Frm = firm_name;
 
-    output.Fail = (spread > percentile_h0);
+    output.Fail = (spread > spread_h0);
     output.FailCoef = output.Fail;
     
     output.Data = struct();
     output.Data.Dec = sum(indices);
-    output.Data.DecPrc = sum(indices) / params.Obs;
-    output.Data.FrmAvgDec = returns_december_avg;
-    output.Data.FrmAvgOth = returns_other_avg;
+    output.Data.DecPrc = sum(indices) / params.T;
+    output.Data.FrmAvgDec = r_december_avg;
+    output.Data.FrmAvgOth = r_other_avg;
     output.Data.FrmSpr = spread;
-    output.Data.H0Prc = percentile_h0;
-    output.Data.H0Spr = spread_h0;
+    output.Data.H0Prc = spread_h0;
+    output.Data.H0Spr = spreads_h0;
 
 end
 
@@ -339,23 +336,23 @@ function output = test_discontinuity_at_zero(params,firm_name,returns)
     edges_zero = find(edges == 0);
 
     x1 = bins(edges_zero - 2);
-    p1 = x1 / params.Obs;
+    p1 = x1 / params.T;
 
     x2 = bins(edges_zero - 1);
-    p2 = x2 / params.Obs;
+    p2 = x2 / params.T;
 
     x3 = bins(edges_zero);
-    p3 = x3 / params.Obs;
+    p3 = x3 / params.T;
     
-    s = params.Obs * p2 * (1 - p2);
+    s = params.T * p2 * (1 - p2);
     
     if (s < 25)
         x2 = x2 - 0.5;
-        p2 = x2 / params.Obs;
+        p2 = x2 / params.T;
     end
     
     diff = x2 - mean([x1 x3]);
-	diff_var = (params.Obs * p2 * (1 - p2)) + (0.25 * params.Obs * (p1 + p3) * (1 - p1 - p3)) + (params.Obs * p2 * (p1 + p3));
+	diff_var = (params.T * p2 * (1 - p2)) + (0.25 * params.T * (p1 + p3) * (1 - p1 - p3)) + (params.T * p2 * (p1 + p3));
 
     z = diff / sqrt(diff_var);
     pval = 2 * normcdf(z);
@@ -384,7 +381,7 @@ end
 function [res,returns_fitted] = test_low_correlation(par,firm_name,returns,returns_h0,returns_other,style_factors,style_factors_comb,style_factors_names,r2_switch)
 
     a = par.A;
-    n = par.Obs;
+    n = par.T;
     t = par.Dates;
 
     sf_coms_k = size(style_factors_comb,2);

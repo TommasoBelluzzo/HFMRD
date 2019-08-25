@@ -77,7 +77,7 @@ function plot_results_internal(td)
     iptPointerManager(fig,'enable');
     iptSetPointerBehavior(a,@(f,cp)set(f,'Pointer','hand'));
     
-    figure_title(sprintf('Test Results\na: %.2f | Observations: %d | Simulations: %d',td1.Par.A,td1.Par.Obs,td1.Par.Sims));
+    figure_title(sprintf('Test Results\na: %.2f | Observations: %d | Simulations: %d',td1.Par.A,td1.Par.T,td1.Par.Sims));
 
     pause(0.01);
 
