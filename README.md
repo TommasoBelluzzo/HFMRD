@@ -46,7 +46,7 @@ Datasets must be built following the structure of the default one included in ev
 
 #### Benchmark (BM) & Risk-Free Rate (RF)
 
-The benchmark is represented by the market proxy defined in Fama & French, 1993: the value-weighted returns of all the US CRSP firms listed on the AMEX, NASDAQ or NYSE that have a CRSP share code of 10 or 11 at the beginning of month t, good shares and price data at the beginning of t, and good return data for t. The 1M treasury bill rate is taken as the risk-free rate.
+The benchmark is represented by the market proxy defined in [Fama & French (1993)](http://doi.org/10.1016/0304-405X(93)90023-5): the value-weighted returns of all the `US CRSP` firms listed on `AMEX`, `NASDAQ` or `NYSE` that have a `CRSP` share code of `10` or `11` at the beginning of month `t`, good shares and price data at the beginning of `t`, and good return data for `t`. The 1M treasury bill rate is taken as the risk-free rate.
 
 #### Hedge Funds (3):
 * The Growth Fund of America - Class A (AGTHX)
