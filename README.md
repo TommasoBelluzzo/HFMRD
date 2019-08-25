@@ -76,14 +76,14 @@ The benchmark is represented by the market proxy defined in Fama & French, 1993:
 * Financial time series must contain a benchmark index, the risk-free rate, the returns of at least 3 hedge funds and at least 3 style factors. They must have a monthly frequency and contain enough observations to run consistent calculations (the minimum required amount is 126, which translates into half of a business year). They must have been previously validated and preprocessed by removing rows with NaNs or filling the gaps through interpolation.
 * Groups are optional. If the sheet is omitted, all the hedge funds in the dataset are all assigned to the same style; otherwise a maximum of 10 groups can be defined. Groups are based on indices and every hedge fund must be assigned to a specific group through an integer value. For example, the following groups definition:
 
-> Hedge Funds in the Returns Sheet: A, B, C, D, E, F, G, H  
-> Group Indices: 1, 2, 2, 1, 1, 2, 3, 3
+  > Hedge Funds in the Returns Sheet: A, B, C, D, E, F, G, H  
+  > Group Indices: 1, 2, 2, 1, 1, 2, 3, 3
+  
+  produces the following outcome:
 
-produces the following outcome:
-
-> Group 1 contains A, D and E  
-> Group 2 contains B, C and F  
-> Group 1 contains G and H
+  > Group 1 contains A, D and E  
+  > Group 2 contains B, C and F  
+  > Group 1 contains G and H
 
 ## Screenshots
 
