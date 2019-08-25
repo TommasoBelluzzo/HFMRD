@@ -83,7 +83,7 @@ The benchmark is represented by the market proxy defined in Fama & French, 1993:
 
   > Group 1 contains A, D and E  
   > Group 2 contains B, C and F  
-  > Group 1 contains G and H
+  > Group 3 contains G and H
 
 ## Screenshots
 
