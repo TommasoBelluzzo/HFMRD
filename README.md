@@ -80,7 +80,7 @@ For what concerns the financial time series:
 
 ## Screenshots
 
-![Interactive Test Results](https://i.imgur.com/DCWEMAB.png)
+![Interactive Test Results](https://i.imgur.com/a40tOaX.png)
 
 ![Low Correlation Test](https://i.imgur.com/DAd2ZuV.png)
 
