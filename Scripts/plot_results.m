@@ -95,19 +95,19 @@ function plot_results_switch(obj,evd,td) %#ok<INUSL>
     end
 
     switch (td.Type)          
-        case 'BR'
+        case 'Bias Ratio'
             plot_test_bias_ratio(td);
         case 'DC'
             plot_test_digits_conformity(td);
         case 'DQ'
             plot_test_data_quality(td);
-        case 'DS'
+        case 'December Spike'
             plot_test_december_spike(td);
-        case 'DZ'
+        case 'Discontinuity At Zero'
             plot_test_discontinuity_at_zero(td);
         case 'LC'
             plot_test_low_conformity(td);
-        case 'SC'
+        case 'Serial Correlation'
             plot_test_serial_correlation(td);
         otherwise
             error('Unrecognized test type ''%s''.',test);

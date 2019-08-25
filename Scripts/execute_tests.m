@@ -1,143 +1,135 @@
 % [INPUT]
-% data = A structure representing the dataset.
-% tab  = A boolean indicating whether the tests result is returned as a summary table or a cell array of structures with detailed information (optional, default=true).
-% a    = A float [0.01,0.10] representing the statistical significance threshold for the tests (optional, default=0.10).
-% sims = An integer representing the number of Monte Carlo simulations to perform (optional, default=10000).
-% nsf  = An integer [1,3] representing the maximum number of style factors that can be simultaneously used in regression models (optional, default=3).
-% swi  = A boolean indicating whether to use a switch of style factors for the calculation of the maximum R2 in the low correlation test (optional, default=false).
-% dec  = An integer [2,6] representing the number of decimal places to consider when performing digit tests (optional, default=4).
-%        No rounding is performed, the exceeding decimals are truncated as if they were not present.
+% data              = A structure representing the dataset.
+% a                 = A float [0.01,0.10] representing the statistical significance threshold for the tests (optional, default=0.10).
+% simulations       = An integer (>= 1000) representing the number of Monte Carlo simulations to perform (optional, default=10000).
+% style_factors_max = An integer [1,3] representing the maximum number of style factors that can be used simultaneously in regression models (optional, default=3).
+% r2_switch         = A boolean indicating whether to switch style factors during the calculation of maximum R2 in the low correlation test (optional, default=false).
+% decimals          = An integer [2,6] representing the number of decimal places to consider when performing the digit tests (optional, default=4).
 %
 % [OUTPUT]
-% td   = An instance containing the test results, whose type depends on the "tab" input parameter:
-%         - true: a summary table that displays the outcome and the anomaly score of each test;
-%         - false: a cell array of structures with the quantitative details of each test.
+% results           = A cell array of structures with the quantitative details of each test.
+% summary           = A table that displays the outcome and the anomaly score of each test.
 
-function td = execute_tests(varargin)
+function [results,summary] = execute_tests(varargin)
 
-    persistent p;
+    persistent ip;
 
-    if (isempty(p))
-        p = inputParser();
-        p.addRequired('data',@(x)validateattributes(x,{'struct'},{'nonempty'}));
-        p.addOptional('tab',true,@(x)validateattributes(x,{'logical'},{'scalar'}));
-        p.addOptional('a',0.10,@(x)validateattributes(x,{'double','single'},{'scalar','real','finite','>=',0.01,'<=',0.10}));
-        p.addOptional('sims',10000,@(x)validateattributes(x,{'numeric'},{'scalar','real','finite','integer','>=',1000}));
-        p.addOptional('nsf',3,@(x)validateattributes(x,{'numeric'},{'scalar','real','finite','integer','>=',1,'<=',6}));
-        p.addOptional('swi',false,@(x)validateattributes(x,{'logical'},{'scalar'}));
-        p.addOptional('dec',4,@(x)validateattributes(x,{'numeric'},{'scalar','real','finite','integer','>=',2,'<=',6}));
+    if (isempty(ip))
+        ip = inputParser();
+        ip.addRequired('data',@(x)validateattributes(x,{'struct'},{'nonempty'}));
+        ip.addOptional('a',0.10,@(x)validateattributes(x,{'double','single'},{'scalar','real','finite','>=',0.01,'<=',0.10}));
+        ip.addOptional('simulations',10000,@(x)validateattributes(x,{'numeric'},{'scalar','real','finite','integer','>=',1000}));
+        ip.addOptional('style_factors_max',3,@(x)validateattributes(x,{'numeric'},{'scalar','real','finite','integer','>=',1,'<=',6}));
+        ip.addOptional('r2_switch',false,@(x)validateattributes(x,{'logical'},{'scalar'}));
+        ip.addOptional('decimals',4,@(x)validateattributes(x,{'numeric'},{'scalar','real','finite','integer','>=',2,'<=',6}));
     end
     
-    p.parse(varargin{:});
-    res = p.Results;
-    data = res.data;
-    tab = res.tab;
-    a = res.a;
-    sims = res.sims;
-    nsf = res.nsf;
-    swi = res.swi;
-    dec = res.dec;
+    ip.parse(varargin{:});
 
-    if (nsf > width(data.SF))
-        error('The maximum number of style factors must be less than or equal to the number of style factors plus one.');
+    ipr = ip.Results;
+    data = ipr.data;
+    style_factors_max = max([ipr.style_factors_max size(data.StyleFactors,2)]);
+    
+    nargoutchk(1,2);
+    
+    if (nargout == 1)
+        results = execute_tests_internal(data,ipr.a,ipr.simulations,style_factors_max,ipr.r2_switch,ipr.decimals);
+    else
+        [results,summary] = execute_tests_internal(data,ipr.a,ipr.simulations,style_factors_max,ipr.r2_switch,ipr.decimals);
     end
-
-    td = execute_tests_internal(data,tab,a,sims,nsf,swi,dec);
 
 end
 
-function td = execute_tests_internal(data,tab,a,sims,nsf,swi,dec)
+function [results,summary] = execute_tests_internal(data,a,simulations,style_factors_max,r2_switch,decimals)
 
-    par = struct();
-    par.A = a;
-    par.Dates = data.DatesNum;
-    par.Obs = data.Obs;
-    par.Sims = sims;
-    
-    sf = data.SF;
-    sf_coms = nchoosek(1:width(sf),nsf);
+    params = struct();
+    params.A = a;
+    params.Dates = data.DatesNum;
+    params.Obs = data.Obs;
+    params.Sims = simulations;
 
-    test_int = cell(7,data.Frms);
+    style_factors_comb = nchoosek(1:size(data.StyleFactors,2),style_factors_max);
+
+    output = cell(7,data.Frms);
     
     for i = 1:data.Frms
-        frm = data.FrmsNam{i};
+        firm_name = data.FirmNames{i};
         
-        ret = data.FrmsRet(:,i);
-        ret_h0 = round(normrnd(mean(ret),std(ret),[data.Obs sims]),4);
-        ret_oth = data.FrmsRet(:,(~strcmp(data.FrmsNam,data.FrmsNam(i)) & (data.Grps == data.Grps(i))));
+        returns = data.FrmsRet(:,i);
+        returns_h0 = round(normrnd(mean(returns),std(returns),[data.Obs simulations]),4);
+        returns_other = data.FrmsRet(:,(~strcmp(data.FirmNames,data.FirmNames(i)) & (data.Grps == data.Grps(i))));
 
-        [res_lco,ret_fit] = test_low_correlation(par,frm,ret,ret_h0,ret_oth,sf,sf_coms,swi);
+        [output_lc,returns_fitted] = test_low_correlation(params,firm_name,returns,returns_h0,returns_other,data.StyleFactors,style_factors_comb,data.StyleFactorsNames,r2_switch);
 
-        test_int{1,i} = res_lco;
-        test_int{2,i} = test_serial_correlation(par,frm,ret,ret_fit);
-        test_int{3,i} = test_bias_ratio(par,frm,ret,ret_h0);
-        test_int{4,i} = test_december_spike(par,frm,ret,ret_h0);
-        test_int{5,i} = test_discontinuity_at_zero(par,frm,ret);
-        test_int{6,i} = test_digits_conformity(par,frm,ret,dec);
-        test_int{7,i} = test_data_quality(par,frm,ret,ret_h0);
+        output{1,i} = output_lc;
+        output{2,i} = test_serial_correlation(params,firm_name,returns,returns_fitted);
+        output{3,i} = test_bias_ratio(params,firm_name,returns,returns_h0);
+        output{4,i} = test_december_spike(params,firm_name,returns,returns_h0);
+        output{5,i} = test_discontinuity_at_zero(params,firm_name,returns);
+        output{6,i} = test_digits_conformity(params,firm_name,returns,decimals);
+        output{7,i} = test_data_quality(params,firm_name,returns,returns_h0);
     end
 
-    if (tab)
-        td = cell(data.Frms,1);
+    results = output;
+
+    if (nargout == 2)
+        summary = cell(data.Frms,1);
 
         for j = 1:data.Frms
-            fail = false(8,1);
-            coef = zeros(8,1);
+            coefficients = zeros(8,1);
+            failures = false(8,1);
 
             for i = 1:7
-                test_curr = test_int{i,j};
-                fail(i) = test_curr.Fail;
-                coef(i) = test_curr.FailCoef;
+                test_curr = output{i,j};
+                coefficients(i) = test_curr.FailCoef;
+                failures(i) = test_curr.Fail;
             end
 
-            fail(8) = any(fail(1:7));
-            coef(8) = sum(coef(1:7));
+            coefficients(8) = sum(coefficients(1:7));
+            failures(8) = coefficients(8) > 3.5;
 
-            td{j} = table(fail,coef,'VariableNames',{'Failure' 'Coefficient'});
+            summary{j} = table(failures,coefficients,'VariableNames',{'Failure' 'Coefficient'});
         end
 
-        td = table(td{:},'VariableNames',data.FrmsNam);
-        td.Properties.RowNames = {'Low Correlation' 'Serial Correlation' 'Bias Ratio' 'December Spike' 'Discontinuity At Zero' 'Digits Conformity' 'Data Quality' 'Total'};
-    else
-        td = test_int;
+        summary = table(summary{:},'VariableNames',data.FirmNames);
+        summary.Properties.RowNames = {'Low Correlation' 'Serial Correlation' 'Bias Ratio' 'December Spike' 'Discontinuity At Zero' 'Digits Conformity' 'Data Quality' 'Total'};
     end
 
 end
 
-function res = test_bias_ratio(par,frm,ret,ret_h0)
+function output = test_bias_ratio(params,firm_name,returns,returns_h0)
 
-    a = par.A;
+    upper_bound = std(returns);
+    lower_bound = -upper_bound;
+    bias_ratio = sum((returns >= 0) & (returns <= upper_bound)) / sum((returns >= lower_bound) & (returns < 0));
 
-    ub = std(ret);
-    lb = -ub;
-    br = sum((ret >= 0) & (ret <= ub)) / sum((ret >= lb) & (ret < 0));
-
-    ret_h0_len = size(ret_h0,2);
-    ret_h0_brs = zeros(ret_h0_len,1);
+    bias_ratios_h0 = zeros(size(returns_h0,2),1);
     
-    for i = 1:ret_h0_len
-        ret_h0_curr = ret_h0(:,i);
+    for i = 1:size(returns_h0,2)
+        r = returns_h0(:,i);
         
-        ret_h0_ub = std(ret_h0_curr);
-        ret_h0_lb = - ret_h0_ub;
-        ret_h0_brs(i) = sum((ret_h0_curr >= 0) & (ret_h0_curr <= ret_h0_ub)) / sum((ret_h0_curr >= ret_h0_lb) & (ret_h0_curr < 0));
+        upper_bound = std(r);
+        lower_bound = -upper_bound;
+        bias_ratios_h0(i) = sum((r >= 0) & (r <= upper_bound)) / sum((r >= lower_bound) & (r < 0));
     end
     
-    pval = sum(ret_h0_brs >= (br - 1e-8)) / ret_h0_len;
+    pval = sum(bias_ratios_h0 >= (bias_ratio - 1e-8)) / size(returns_h0,2);
     pval = max([0 min([pval 1])]);
     
-    res = struct();
-    res.Type = 'BR';
-    res.Flags = 1;
-    res.Par = par;
-    res.Frm = frm;
-    res.Fail = (br >= 2.5) & (pval < a);
-    res.FailCoef = res.Fail;
+    output = struct();
+
+    output.Type = 'Bias Ratio';
+    output.Flags = 1;
+    output.Par = params;
+    output.Frm = firm_name;
+
+    output.Fail = (bias_ratio >= 2.5) & (pval < params.A);
+    output.FailCoef = output.Fail;
     
-    res.Data = struct();
-    res.Data.BR = br;
-    res.Data.H0 = ret_h0_brs;
-    res.Data.PVal = pval;
+    output.Data = struct();
+    output.Data.BR = bias_ratio;
+    output.Data.H0 = bias_ratios_h0;
+    output.Data.PVal = pval;
 
 end
 
@@ -246,43 +238,41 @@ function res = test_data_quality(par,frm,ret,ret_h0)
 
 end
 
-function res = test_december_spike(par,frm,ret,ret_h0)
+function output = test_december_spike(params,firm_name,returns,returns_h0)
 
-    a = par.A;
-    n = par.Obs;
-    t = par.Dates;
+    indices = (month(params.Dates) == 12);
+    
+    returns_december = returns(indices,:);
+    returns_december_avg = mean(returns_december);
+    returns_other = returns(~indices,:);
+    returns_other_avg = mean(returns_other);
+    spread = returns_december_avg - returns_other_avg;
+    
+    returns_h0_december = returns_h0(indices,:);
+    returns_h0_december_avg = mean(returns_h0_december);
+    returns_h0_other = returns_h0(~indices,:);
+    returns_h0_other_avg = mean(returns_h0_other);
+    spread_h0 = returns_h0_december_avg - returns_h0_other_avg;
+    percentile_h0 = prctile(spread_h0,((1 - params.A) * 100));
+    
+    output = struct();
 
-    is_dec = (month(t) == 12);
+    output.Type = 'December Spike';
+    output.Flags = 1;
+    output.Par = params;
+    output.Frm = firm_name;
+
+    output.Fail = (spread > percentile_h0);
+    output.FailCoef = output.Fail;
     
-    ret_dec = ret(is_dec,:);
-    ret_dec_avg = mean(ret_dec);
-    ret_oth = ret(~is_dec,:);
-    ret_oth_avg = mean(ret_oth);
-    ret_spr = ret_dec_avg - ret_oth_avg;
-    
-    ret_h0_dec = ret_h0(is_dec,:);
-    ret_h0_dec_avg = mean(ret_h0_dec);
-    ret_h0_oth = ret_h0(~is_dec,:);
-    ret_h0_oth_avg = mean(ret_h0_oth);
-    ret_h0_spr = ret_h0_dec_avg - ret_h0_oth_avg;
-    ret_h0_prc = prctile(ret_h0_spr,((1 - a) * 100));
-    
-    res = struct();
-    res.Type = 'DS';
-    res.Flags = 1;
-    res.Par = par;
-    res.Frm = frm;
-    res.Fail = (ret_spr > ret_h0_prc);
-    res.FailCoef = res.Fail;
-    
-    res.Data = struct();
-    res.Data.Dec = sum(is_dec);
-    res.Data.DecPrc = sum(is_dec) / n;
-    res.Data.FrmAvgDec = ret_dec_avg;
-    res.Data.FrmAvgOth = ret_oth_avg;
-    res.Data.FrmSpr = ret_spr;
-    res.Data.H0Prc = ret_h0_prc;
-    res.Data.H0Spr = ret_h0_spr;
+    output.Data = struct();
+    output.Data.Dec = sum(indices);
+    output.Data.DecPrc = sum(indices) / params.Obs;
+    output.Data.FrmAvgDec = returns_december_avg;
+    output.Data.FrmAvgOth = returns_other_avg;
+    output.Data.FrmSpr = spread;
+    output.Data.H0Prc = percentile_h0;
+    output.Data.H0Spr = spread_h0;
 
 end
 
@@ -343,88 +333,87 @@ function res = test_digits_conformity(par,frm,ret,dec)
 
 end
 
-function res = test_discontinuity_at_zero(par,frm,ret)
+function output = test_discontinuity_at_zero(params,firm_name,returns)
 
-    a = par.A;
-    n = par.Obs;
+    [bins,edges] = histcounts(returns,'BinWidth',0.005);
+    edges_zero = find(edges == 0);
 
-    [bins,edgs] = histcounts(ret,'BinWidth',0.005);
-    edg_zero = find(edgs == 0);
+    x1 = bins(edges_zero - 2);
+    p1 = x1 / params.Obs;
 
-    x1 = bins(edg_zero - 2);
-    p1 = x1 / n;
+    x2 = bins(edges_zero - 1);
+    p2 = x2 / params.Obs;
 
-    x2 = bins(edg_zero - 1);
-    p2 = x2 / n;
-
-    x3 = bins(edg_zero);
-    p3 = x3 / n;
+    x3 = bins(edges_zero);
+    p3 = x3 / params.Obs;
     
-    s = n * p2 * (1 - p2);
+    s = params.Obs * p2 * (1 - p2);
     
     if (s < 25)
         x2 = x2 - 0.5;
-        p2 = x2 / n;
+        p2 = x2 / params.Obs;
     end
     
-    d = x2 - mean([x1 x3]);
-	d_var = (n * p2 * (1 - p2)) + (0.25 * n * (p1 + p3) * (1 - p1 - p3)) + (n * p2 * (p1 + p3));
+    diff = x2 - mean([x1 x3]);
+	diff_var = (params.Obs * p2 * (1 - p2)) + (0.25 * params.Obs * (p1 + p3) * (1 - p1 - p3)) + (params.Obs * p2 * (p1 + p3));
 
-    z = d / sqrt(d_var);
+    z = diff / sqrt(diff_var);
     pval = 2 * normcdf(z);
     
-    res = struct();
-    res.Type = 'DZ';
-    res.Flags = 1;
-    res.Par = par;
-    res.Frm = frm;
-    res.Fail = (d < 0) & (pval < a);
-    res.FailCoef = res.Fail;
+    output = struct();
 
-    res.Data = struct();
-    res.Data.Bins = bins;
-    res.Data.Diff = d;
-    res.Data.DiffVar = d_var;
-    res.Data.Edges = edgs;
-    res.Data.IdxZ = edg_zero;
-    res.Data.PVal = pval;
-    res.Data.ZScore = z;
+    output.Type = 'Discontinuity At Zero';
+    output.Flags = 1;
+    output.Par = params;
+    output.Frm = firm_name;
+
+    output.Fail = (diff < 0) & (pval < params.A);
+    output.FailCoef = output.Fail;
+
+    output.Data = struct();
+    output.Data.Bins = bins;
+    output.Data.Diff = diff;
+    output.Data.DiffVar = diff_var;
+    output.Data.Edges = edges;
+    output.Data.IdxZ = edges_zero;
+    output.Data.PVal = pval;
+    output.Data.ZScore = z;
 
 end
 
-function [res,ret_fit] = test_low_correlation(par,frm,ret,ret_h0,ret_oth,sf,sf_cmbs,swi)
+function [res,returns_fitted] = test_low_correlation(par,firm_name,returns,returns_h0,returns_other,style_factors,style_factors_comb,style_factors_names,r2_switch)
 
     a = par.A;
     n = par.Obs;
     t = par.Dates;
 
-    sf_coms_k = size(sf_cmbs,2);
-    sf_coms_n = size(sf_cmbs,1);
+    sf_coms_k = size(style_factors_comb,2);
+    sf_coms_n = size(style_factors_comb,1);
 
     o = ones(n,1);
     df = (n - 1) / (n - sf_coms_k - 1);
-    ret_h0 = ret_h0(:,randperm(size(ret_h0,2),100));
+    returns_h0 = returns_h0(:,randperm(size(returns_h0,2),100));
 
-    idx_ewi = mean(ret_oth,2);
-    idx_mdl = fitlm(idx_ewi,ret);
+    idx_ewi = mean(returns_other,2);
+    idx_mdl = fitlm(idx_ewi,returns);
     idx_pval = idx_mdl.Coefficients{2,4};
 
-    if (swi)
+    if (r2_switch)
         swi_fst = floor(0.1 * n);
         swi_lst = n - swi_fst;
         swi_pts = swi_fst:swi_lst;
         swi_pts_len = numel(swi_pts);
 
-        swi_es2 = sum((ret - mean(ret)) .^ 2);
+        swi_es2 = sum((returns - mean(returns)) .^ 2);
         swi_f = zeros(swi_pts_len,1);
 
         for i = 1:swi_pts_len
             swi_pt = swi_pts(i);
 
-            swi_y1 = ret(1:swi_pt);
+            swi_y1 = returns(1:swi_pt);
             swi_r1 = swi_y1 - mean(swi_y1);
 
-            swi_y2 = ret((swi_pt + 1):n);
+            swi_y2 = returns((swi_pt + 1):n);
             swi_r2 = swi_y2 - mean(swi_y2);
 
             swi_us2 = sum(([swi_r1; swi_r2]) .^ 2);
@@ -440,17 +429,17 @@ function [res,ret_fit] = test_low_correlation(par,frm,ret,ret_h0,ret_oth,sf,sf_c
         swi_off = 1;
 
         for i = 1:sf_coms_n
-            sf_cmb_i = sf_cmbs(i,:);
+            sf_cmb_i = style_factors_comb(i,:);
 
             for j = 1:sf_coms_n
                 if (i == j)
                     continue;
                 end
 
-                sf_cmb_j = sf_cmbs(j,:);
-                sf_curr = [sf{1:(cp-1),sf_cmb_i}; sf{cp:n,sf_cmb_j}];
+                sf_cmb_j = style_factors_comb(j,:);
+                sf_curr = [style_factors{1:(cp-1),sf_cmb_i}; style_factors{cp:n,sf_cmb_j}];
 
-                swi_cmbs(swi_off,:) = {sf_curr [sf.Properties.VariableNames(sf_cmb_i) {'>'} sf.Properties.VariableNames(sf_cmb_j)]};
+                swi_cmbs(swi_off,:) = {sf_curr [style_factors_names(sf_cmb_i) {'>'} style_factors_names(sf_cmb_j)]};
                 swi_off = swi_off + 1;
             end
         end
@@ -458,7 +447,7 @@ function [res,ret_fit] = test_low_correlation(par,frm,ret,ret_h0,ret_oth,sf,sf_c
         swi_r2 = zeros(swi_iter,1);
 
         for i = 1:swi_iter
-            [~,~,~,~,stat] = regress(ret,[o swi_cmbs{i,1}]);
+            [~,~,~,~,stat] = regress(returns,[o swi_cmbs{i,1}]);
             r2 = 1 - (1 - stat(1)) * df;
 
             swi_r2(i) = r2;
@@ -466,12 +455,12 @@ function [res,ret_fit] = test_low_correlation(par,frm,ret,ret_h0,ret_oth,sf,sf_c
         
         [r2_max,r2_max_idx] = max(swi_r2);
         max_nam = swi_cmbs{r2_max_idx,2};
-        max_mod = fitlm(swi_cmbs{r2_max_idx,1},ret);
+        max_mod = fitlm(swi_cmbs{r2_max_idx,1},returns);
         
         ret_h0_max_r2s = -Inf(100,1);
 
         for i = 1:100
-            ret_h0_curr = ret_h0(:,i);
+            ret_h0_curr = returns_h0(:,i);
             
             for j = 1:swi_iter
                 [~,~,~,~,stat] = regress(ret_h0_curr,[o swi_cmbs{j,1}]);
@@ -490,9 +479,9 @@ function [res,ret_fit] = test_low_correlation(par,frm,ret,ret_h0,ret_oth,sf,sf_c
         max_regs = cell(sf_coms_n,2);
 
         for i = 1:sf_coms_n
-            sf_cmb = sf_cmbs(i,:);
+            sf_cmb = style_factors_comb(i,:);
 
-            [~,~,~,~,stat] = regress(ret,[o sf{:,sf_cmb}]);
+            [~,~,~,~,stat] = regress(returns,[o style_factors(:,sf_cmb)]);
             r2 = 1 - (1 - stat(1)) * df;
 
             max_regs(i,:) = {r2 sf_cmb};
@@ -500,18 +489,18 @@ function [res,ret_fit] = test_low_correlation(par,frm,ret,ret_h0,ret_oth,sf,sf_c
 
         [r2_max,r2_max_idx] = max([max_regs{:,1}]);
         max_comb = max_regs{r2_max_idx,2};
-        max_nam = sf.Properties.VariableNames(max_comb);
-        max_mod = fitlm(sf{:,max_comb},ret);
+        max_nam = style_factors_names(max_comb);
+        max_mod = fitlm(style_factors(:,max_comb),returns);
         
         ret_h0_max_r2s = -Inf(100,1);
 
         for i = 1:100
-            ret_h0_curr = ret_h0(:,i);
+            ret_h0_curr = returns_h0(:,i);
             
             for j = 1:sf_coms_n
-                sf_cmb = sf_cmbs(j,:);
+                sf_cmb = style_factors_comb(j,:);
 
-                [~,~,~,~,stat] = regress(ret_h0_curr,[o sf{:,sf_cmb}]);
+                [~,~,~,~,stat] = regress(ret_h0_curr,[o style_factors(:,sf_cmb)]);
                 r2 = 1 - (1 - stat(1)) * df;
 
                 if (r2 > ret_h0_max_r2s(i))
@@ -532,7 +521,7 @@ function [res,ret_fit] = test_low_correlation(par,frm,ret,ret_h0,ret_oth,sf,sf_c
     res.Type = 'LC';
     res.Flags = 2;
     res.Par = par;
-    res.Frm = frm;
+    res.Frm = firm_name;
     res.Fail = fail_idx | fail_max;
     res.FailCoef = (fail_idx + fail_max) / 2;
 
@@ -548,43 +537,41 @@ function [res,ret_fit] = test_low_correlation(par,frm,ret,ret_h0,ret_oth,sf,sf_c
     res.Data.MaxTest = ret_h0_prc;
     res.Data.MaxVal = r2_max;
     
-    ret_fit = max_mod.Fitted;
+    returns_fitted = max_mod.Fitted;
 
 end
 
-function res = test_serial_correlation(par,frm,ret,ret_fit)
+function output = test_serial_correlation(params,firm_name,returns,returns_fitted)
 
-    a = par.A;
-
-    i = ret_fit(1:end-1) > mean(ret_fit);
-
-    y = ret(2:end);
-    x1 = ret(1:end-1);
-    x2 = (1 - i) .* x1;
+    y = returns(2:end);
+    x1 = returns(1:end-1);
+    x2 = (1 - (returns_fitted(1:end-1) > mean(returns_fitted))) .* x1;
     
-    con_mdl = fitlm([x1 x2],y);
-    con_b = con_mdl.Coefficients{3,1};
-    con_pval = con_mdl.Coefficients{3,4};
+    mdl_conditional = fitlm([x1 x2],y);
+    b_conditional = mdl_conditional.Coefficients{3,1};
+    pval_conditional = mdl_conditional.Coefficients{3,4};
 
-    unc_mdl = fitlm(x1,y);
-    unc_b = unc_mdl.Coefficients{2,1};
-    unc_pval = unc_mdl.Coefficients{2,4};
+    mdl_unconditional = fitlm(x1,y);
+    b_unconditional = mdl_unconditional.Coefficients{2,1};
+    pval_unconditional = mdl_unconditional.Coefficients{2,4};
 
-    fail_con = (con_b > 0) & (con_pval < a);
-    fail_unc = (unc_b > 0) & (unc_pval < a);
+    failure_conditional = (b_conditional > 0) & (pval_conditional < params.A);
+    failure_unconditional = (b_unconditional > 0) & (pval_unconditional < params.A);
     
-    res = struct();
-    res.Type = 'SC';
-    res.Flags = 2;
-    res.Par = par;
-    res.Frm = frm;
-    res.Fail = fail_con | fail_unc;
-    res.FailCoef = (fail_con + fail_unc) / 2;
+    output = struct();
+
+    output.Type = 'Serial Correlation';
+    output.Flags = 2;
+    output.Par = params;
+    output.Frm = firm_name;
+
+    output.Fail = failure_conditional | failure_unconditional;
+    output.FailCoef = (failure_conditional + failure_unconditional) / 2;
     
-    res.Data = struct();
-    res.Data.ConFail = fail_con;
-    res.Data.ConMod = con_mdl;
-    res.Data.UncFail = fail_unc;
-    res.Data.UncMod = unc_mdl;
+    output.Data = struct();
+    output.Data.ConFail = failure_conditional;
+    output.Data.ConMod = mdl_conditional;
+    output.Data.UncFail = failure_unconditional;
+    output.Data.UncMod = mdl_unconditional;
 
 end

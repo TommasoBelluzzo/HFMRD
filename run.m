@@ -61,9 +61,9 @@ addpath(paths_base);
 
 file = fullfile(path_base,['Datasets' filesep() 'Example.xlsx']);
 data = parse_dataset(file);
-td = execute_tests(data,false);
+[results,summary] = execute_tests(data,0.10,10000,3,false,4);
 
 plot_data(data,true);
-plot_results(td);
+plot_results(results);
 
 rmpath(paths_base);

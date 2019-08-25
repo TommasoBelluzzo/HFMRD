@@ -1,242 +1,255 @@
 % [INPUT]
-% file = A string representing the full path to the Excel spreadsheet containing the dataset.
+% file        = A string representing the full path to the Excel spreadsheet containing the dataset.
+% date_format = A string representing the date format used in the Excel spreadsheet (optional, default=MM/yyyy).
 %
 % [OUTPUT]
-% data = A structure containing the parsed dataset.
+% data        = A structure containing the parsed dataset.
 
 function data = parse_dataset(varargin)
 
-    persistent p;
+    persistent ip;
 
-    if (isempty(p))
-        p = inputParser();
-        p.addRequired('file',@(x)validateattributes(x,{'char','string'},{'scalartext','nonempty'}));
+    if (isempty(ip))
+        ip = inputParser();
+        ip.addRequired('file',@(x)validateattributes(x,{'char'},{'nonempty','size',[1,NaN]}));
+        ip.addOptional('date_format','MM/yyyy',@(x)validateattributes(x,{'char'},{'nonempty','size',[1,NaN]}));
     end
-    
-    p.parse(varargin{:});
-    res = p.Results;
 
-    data = parse_dataset_internal(res.file);
+    ip.parse(varargin{:});
+    ipr = ip.Results;
+
+    data = parse_dataset_internal(ipr.file,ipr.date_format);
 
 end
 
-function data = parse_dataset_internal(file)
+function data = parse_dataset_internal(file,date_format)
+
+    try
+        datetime('now','InputFormat',date_format);
+    catch
+        error('The specified date format is invalid.');
+    end
 
     if (exist(file,'file') == 0)
         error('The dataset file does not exist.');
     end
-    
+
     if (ispc())
-        [file_stat,file_shts,file_fmt] = xlsfinfo(file);
+        [file_status,file_sheets,file_format] = xlsfinfo(file);
         
-        if (isempty(file_stat) || ~strcmp(file_fmt,'xlOpenXMLWorkbook'))
+        if (isempty(file_status) || ~strcmp(file_format,'xlOpenXMLWorkbook'))
             error('The dataset file is not a valid Excel spreadsheet.');
         end
     else
-        [file_stat,file_shts] = xlsfinfo(file);
+        [file_status,file_sheets] = xlsfinfo(file);
         
-        if (isempty(file_stat))
+        if (isempty(file_status))
             error('The dataset file is not a valid Excel spreadsheet.');
         end
     end
+    
+    if (~strcmp(file_sheets{1},'Returns'))
+        error('The first sheet of the dataset file must be the ''Returns'' one.');
+    end
+    
+    if (~ismember('Style Factors',file_sheets))
+        error('The dataset does not contain the required ''Style Factors'' sheet.');
+    end
+    
+    tab_returns = parse_table(file,1,'Returns',date_format);
 
-    shts_len = length(file_shts);
-    
-    if (shts_len < 2)
-        error('The dataset does not contain all the required sheets.');
-    end
-    
-    if (shts_len > 3)
-        error('The dataset contains unnecessary sheets.');
-    end
-    
-    file_shts = strtrim(file_shts);
-    
-    if (~isequal(file_shts(1:2),{'Returns' 'Style Factors'}))
-        error('The dataset contains invalid (wrong name) or misplaced (wrong order) sheets.');
-    end
-    
-    rets = parse_table(file,1,'Returns',true);
-
-    if (width(rets) < 6)
-        error('The ''Returns'' table must contain at least the following series: observations dates, benchmark returns, risk-free rates and the returns of three firms to analyze.');
+    if (width(tab_returns) < 6)
+        error('The ''Returns'' table must contain at least the following series: observations dates, benchmark returns, risk-free rates and the returns of 3 firms to analyze.');
     end
 
-    if (~strcmp(rets.Properties.VariableNames(2),'BM'))
-        error('The second column of the ''Returns'' table must be called ''BM'' and must contain the benchmark returns.');
+    if (~strcmp(tab_returns.Properties.VariableNames(2),'BM'))
+        error('The second column of the ''Returns'' table must be called ''BM'' and contain the benchmark returns.');
     end
 
-    if (~strcmp(rets.Properties.VariableNames(3),'RF'))
-        error('The third column of the ''Returns'' table must be called ''RF'' and must contain the risk-free rates.');
+    if (~strcmp(tab_returns.Properties.VariableNames(3),'RF'))
+        error('The third column of the ''Returns'' table must be called ''RF'' and contain the risk-free rates.');
     end
     
-    n = height(rets);
+    t = height(tab_returns);
 
-    if (n < 120)
-        error('The dataset must contain at least 120 observations in order to run consistent calculations.');
+    if (t < 126)
+        error('The dataset must contain at least 126 observations (half of a business year) in order to run consistent calculations.');
     end
     
-    if (any(ismissing(rets)))
+    if (any(any(ismissing(tab_returns))))
         error('The ''Returns'' table contains invalid or missing values.');
     end
     
-    dates_str = cellstr(datestr(rets{:,1},'mm/yyyy'));
-    dates_num = datenum(rets{:,1});
-    dates_beg = dates_num(1);
-    dates_end = dates_num(end);
-    rets.Date = [];
+    dates_str = cellstr(datestr(tab_returns{:,1},'mm/yyyy'));
+    dates_num = datenum(tab_returns{:,1});
+    tab_returns.Date = [];
     
-    bm = rets{:,1};
-    rf = rets{:,2};
+    benchmark = tab_returns{:,1};
+    risk_free = tab_returns{:,2};
+    market_excess = benchmark - risk_free;
 
-    frms = numel(rets.Properties.VariableNames) - 2;
-    frms_nam = rets.Properties.VariableNames(3:end);
-    frms_ret = rets{:,3:end};
+    firms = numel(tab_returns.Properties.VariableNames) - 2;
+    firm_names = tab_returns.Properties.VariableNames(3:end);
+    firm_returns = tab_returns{:,3:end};
     
-    sf = parse_table(file,2,'Style Factors',true);
+    groups_indices = ones(1,firms);
+    style_factors = table([]);
+    style_factors_names = [];
     
-    if (width(sf) < 3)
-        error('The ''Style Factors'' table must contain at least 3 style factors.');
-    end
-    
-    if (height(sf) ~= n)
-        error('The number of observations in the ''Returns'' table and in the ''Style Factors'' table must be identical.');
-    end
-    
-    if (any(strcmp(rets.Properties.VariableNames,'MRKEXC')))
-        error('The ''Style Factors'' table contains a column called ''MRKEXC'', which is a reserved name for the market excess returns.');
-    end
+    for tab = {'Style Factors' 'Groups'}
+        
+        tab_index = find(strcmp(file_sheets,tab),1);
 
-    if (any(ismissing(sf)))
-        error('The ''Style Factors'' table contains invalid or missing values.');
-    end
-    
-    if ((datenum(sf.Date(1)) ~=  dates_beg) || (datenum(sf.Date(end)) ~=  dates_end) || (size(sf,1) ~= n))
-        error('The ''Returns'' table and the ''Style Factors'' table observation dates are mismatching.');
-    end
+        switch (char(tab))
 
-    mrk_exc = bm - rf;
-    
-    sf.Date = [];
-    sf = [table(mrk_exc,'VariableNames',{'MRKEXC'}) sf];
-    
-    if (shts_len == 3)
-        if (~strcmp(file_shts(3),'Groups'))
-            error('The dataset contains invalid (wrong name) or misplaced (wrong order) sheets.');
-        end
-        
-        grps = parse_table(file,3,'Groups',false);
+            case 'Style Factors'
 
-        if (~isequal(grps.Properties.VariableNames,rets.Properties.VariableNames(3:end)))
-            error('The ''Returns'' table and the ''Groups'' table fniirms are mismatching.');
-        end
-        
-        if (height(grps) ~= 1)
-            error('The ''Groups'' table must contain one row of values.');
-        end
-        
-        grps_vals = grps{:,:};
-        
-        if (any(ismissing(grps_vals)) || any(grps_vals < 1))
-            error('The ''Groups'' table contains invalid or missing values.');
-        end
+                tab_style_factors = parse_table(file,tab_index,'Style Factors',date_format);
 
-        grps_max = max(grps_vals);
-        grps_seq = 1:grps_max;
-        grps_cnt = zeros(grps_max,1);
-        
-        for i = grps_seq
-            grps_cnt(i) = numel(grps_vals(grps_vals == i));
-        end
-        
-        grps_mis = (grps_cnt == 0);
+                if (width(tab_style_factors) < 3)
+                    error('The ''Style Factors'' table must contain at least 3 time series.');
+                end
 
-        if (any(grps_mis))
-            grps_mis = sprintfc(' %d',grps_seq(grps_mis));
-            error('The following groups are not defined in the ''Groups'' table:%s.',strcat(grps_mis{:}));
+                if (any(any(ismissing(tab_style_factors))))
+                    error('The ''Style Factors'' sheet contains invalid or missing values.');
+                end
+
+                if ((size(tab_style_factors,1) ~= t) || any(datenum(tab_style_factors.Date) ~= dates_num))
+                    error('The observation dates in ''Returns'' and ''Style Factors'' sheets are mismatching.');
+                end
+
+                if (any(strcmp(tab_style_factors.Properties.VariableNames,'MRKEXC')))
+                    error('The ''Style Factors'' table contains a column called ''MRKEXC'', which is a reserved name for the market excess returns.');
+                end
+
+                tab_style_factors.Date = [];
+                tab_style_factors = [table(market_excess,'VariableNames',{'MRKEXC'}) tab_style_factors]; %#ok<AGROW>
+
+                style_factors = tab_style_factors{:,:};
+                style_factors_names = tab_style_factors.Properties.VariableNames;
+
+            case 'Groups'
+
+                if (~isempty(tab_index))
+                    groups = parse_table(file,tab_index,'Groups',date_format);
+
+                    if (~isequal(groups.Properties.VariableNames,tab_returns.Properties.VariableNames(3:end)))
+                        error('The firms defined in ''Returns'' table and ''Groups'' table are mismatching.');
+                    end
+
+                    if (height(groups) ~= 1)
+                        error('The ''Groups'' table must contain only one row of values.');
+                    end
+
+                    groups_indices = groups{:,:};
+
+                    if (any(ismissing(groups_indices)) || any(groups_indices < 1) || any(round(groups_indices) ~= groups_indices))
+                        error('The ''Groups'' table contains invalid or missing values.');
+                    end
+
+                    groups_max = max(groups_indices);
+                    groups_sequence = 1:groups_max;
+                    groups_count = zeros(groups_max,1);
+
+                    for i = groups_sequence
+                        groups_count(i) = numel(groups_indices(groups_indices == i));
+                    end
+
+                    groups_undefined = (groups_count == 0);
+
+                    if (any(groups_undefined))
+                        groups_undefined = sprintfc(' %d',groups_sequence(groups_undefined));
+                        error('The following groups are not defined in the ''Groups'' table:%s.',strcat(groups_undefined{:}));
+                    end
+
+                    if (numel(unique(groups_indices)) > 10)
+                        error('A maximum of 10 groups can be defined the ''Groups'' table.');
+                    end
+
+                    if (any(groups_count < 3))
+                        error('Each group defined in the ''Groups'' table must contain at least 3 firms.');
+                    end
+                end
+
         end
-        
-        if (numel(unique(grps_vals)) > 10)
-            error('A maximum of 10 groups can be defined the ''Groups'' table.');
-        end
-        
-        if (any(grps_cnt < 3))
-            error('Each group defined in the ''Groups'' table must contain at least 3 firms.');
-        end
-    else
-        grps_vals = ones(1,frms);
     end
     
     data = struct();
-    data.BM = bm;
-    data.BMAnn = (prod(1 + bm) ^ (12 / n)) - 1;
-    data.BMAvg = mean(bm);
+    
+    data.Obs = t;
+    data.Frms = firms;
+    
     data.DatesNum = dates_num;
     data.DatesStr = dates_str;
-    data.Frms = frms;
-    data.FrmsNam = frms_nam;
-    data.FrmsRet = frms_ret;
-    data.Grps = grps_vals;
-    data.MAR = mean(rf) + (2 * std(rf));
-    data.ME = mrk_exc;
-    data.MEAnn = (prod(1 + mrk_exc) ^ (12 / n)) - 1;
-    data.MEAvg = mean(mrk_exc);
-    data.RF = rf;
-    data.RFAnn =  (prod(1 + rf) ^ (12 / n)) - 1;
-    data.RFAvg =  mean(rf);
-    data.Obs = n;
+
+    data.FirmNames = firm_names;
+    data.FrmsRet = firm_returns;
+    data.StyleFactors = style_factors;
+    data.StyleFactorsNames = style_factors_names;
+    data.Grps = groups_indices;
+
+    data.Benchmark = benchmark;
+    data.BenchmarkAnnualized = (prod(1 + benchmark) ^ (12 / t)) - 1;
+    data.BenchmarkAverage = mean(benchmark);
+    data.MarketExcess = market_excess;
+    data.MarketExcessAnnualized = (prod(1 + market_excess) ^ (12 / t)) - 1;
+    data.MarketExcessAverage = mean(market_excess);
+    data.RiskFree = risk_free;
+    data.RiskFreeAnnualized = (prod(1 + risk_free) ^ (12 / t)) - 1;
+    data.RiskFreeAverage = mean(risk_free);
+
+    data.MAR = mean(risk_free) + (2 * std(risk_free));
     data.PerAdj = sqrt(12);
-    data.RiskAve = (log(mean(1 + bm)) - log(mean(1 + rf))) / var(1 + bm);
-    data.SF = sf;
+    data.RiskAversion = (log(mean(1 + benchmark)) - log(mean(1 + risk_free))) / var(1 + benchmark);
 
 end
 
-function res = parse_table(file,sht,name,ts)
+function output = parse_table(file,sheet,name,date_format)
 
     if (verLessThan('Matlab','9.1'))
-        res = readtable(file,'Sheet',sht);
+        output = readtable(file,'Sheet',sheet);
         
-        if (~all(cellfun(@isempty,regexp(res.Properties.VariableNames,'^Var\d+$','once'))))
+        if (~all(cellfun(@isempty,regexp(output.Properties.VariableNames,'^Var\d+$','once'))))
             error(['The ''' name ''' table contains unnamed columns.']);
         end
-        
-        if (ts)
-            if (~strcmp(res.Properties.VariableNames(1),'Date'))
-                error(['The first column of the ''' name ''' table must be called ''Date'' and must contain the time series dates.']);
-            end
 
-            res.Date = datetime(res.Date,'InputFormat','MM/yyyy');
-            res_vars = varfun(@class,res,'OutputFormat','cell');
-
-            if (~all(strcmp(res_vars(2:end),'double')))
+        if (strcmp(name,'Groups'))
+            output_vars = varfun(@class,output,'OutputFormat','cell');
+            
+            if (~all(strcmp(output_vars,'double')))
                 error(['The ''' name ''' table contains invalid or missing values.']);
             end
         else
-            res_vars = varfun(@class,res,'OutputFormat','cell');
+            if (~strcmp(output.Properties.VariableNames(1),'Date'))
+                error(['The first column of the ''' name ''' table must be called ''Date'' and must contain the observation dates.']);
+            end
             
-            if (~all(strcmp(res_vars,'double')))
+            output.Date = datetime(output.Date,'InputFormat',date_format);
+            output_vars = varfun(@class,output,'OutputFormat','cell');
+            
+            if (~all(strcmp(output_vars(2:end),'double')))
                 error(['The ''' name ''' table contains invalid or missing values.']);
             end
         end
     else
-        opts = detectImportOptions(file,'Sheet',sht);
+        options = detectImportOptions(file,'Sheet',sheet);
         
-        if (~all(cellfun(@isempty,regexp(opts.VariableNames,'^Var\d+$','once'))))
+        if (~all(cellfun(@isempty,regexp(options.VariableNames,'^Var\d+$','once'))))
             error(['The ''' name ''' table contains unnamed columns.']);
         end
-        
-        if (ts)
-            if (~strcmp(opts.VariableNames(1),'Date'))
-                error(['The first column of the ''' name ''' table must be called ''Date'' and must contain the time series dates.']);
+
+        if (strcmp(name,'Groups'))
+            options = setvartype(options,repmat({'double'},1,numel(options.VariableNames)));
+        else
+            if (~strcmp(options.VariableNames(1),'Date'))
+                error(['The first column of the ''' name ''' table must be called ''Date'' and must contain the observation dates.']);
             end
 
-            opts = setvartype(opts,[{'datetime'} repmat({'double'},1,numel(opts.VariableNames)-1)]);
-            opts = setvaropts(opts,'Date','InputFormat','MM/yyyy');
-        else
-            opts = setvartype(opts,repmat({'double'},1,numel(opts.VariableNames)));
+            options = setvartype(options,[{'datetime'} repmat({'double'},1,numel(options.VariableNames)-1)]);
+            options = setvaropts(options,'Date','InputFormat',date_format);
         end
-        
-        res = readtable(file,opts);
+
+        output = readtable(file,options);
     end
 
 end
