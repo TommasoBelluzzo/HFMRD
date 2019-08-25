@@ -71,12 +71,10 @@ The benchmark is represented by the market proxy defined in Fama & French, 1993:
   * **TBR10Y:** the 10Y treasury bond rate.
   * **CRESPR:** the change in the credit spread (the BAA corporate bond rate minus the 10Y treasury bond rate).
 
-For what concerns the financial time series:
-* they must be based on a monthly frequency;
-* they must contain enough observations to run consistent calculations (a minimum of 120 observations for at least 3 hedge funds is required);
-* they must have been previously validated and preprocessed by removing rows with NaNs or filling the gaps with an interpolation approach;
-* a minimum of 3 style factors is required;
-* groups are optional, hence their sheet must be removed from the dataset if all the hedge funds are assumed to belong to the same style.
+#### Notes
+
+* Financial time series must contain a benchmark index, the risk-free rate, the returns of at least 3 hedge funds and at least 3 style factors. They must have a monthly frequency and contain enough observations to run consistent calculations (the minimum required amount is 126, which translates into half of a business year). They must have been previously validated and preprocessed by removing rows with NaNs or filling the gaps through interpolation.
+* Groups are optional. If the sheet is omitted, all the hedge funds in the dataset are all assigned to the same style.
 
 ## Screenshots
 
