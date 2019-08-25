@@ -42,7 +42,7 @@ The `Test Results` plot created by the `plot_results` function is interactive an
 
 ## Dataset
 
-Datasets must be structured like the default one included in every release of the framework (`Datasets/Example.xlsx`). The latter, based on the US financial sector, defines the following entities:
+Datasets must be built following the structure of the default one included in every release of the framework (`Datasets/Example.xlsx`). The latter, based on the US financial sector, defines the following entities:
 
 #### Benchmark (BM) & Risk-Free Rate (RF)
 
@@ -54,7 +54,7 @@ The benchmark is represented by the market proxy defined in Fama & French, 1993:
 * The Fairfield Sentry Fund of  Bernard Madoff (SENTRY)
 		
 #### Style Factors (18):
-* **MRKEXC:** the excess return on the market, calculated as benchmark minus risk-free rate.
+* **MRKEXC:** the excess return on the market, automatically calculated as benchmark minus risk-free rate.
 * **Fama & French 5 Factors from the [French Data Library](http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html) (10)**
   * **CMA:** conservative minus aggressive, the average return on two conservative investment portfolios minus the average return on two aggressive investment portfolios.
   * **HML:** high minus slow, the average return on two value portfolios minus the average return on two growth portfolios.
